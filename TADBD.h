@@ -35,11 +35,11 @@ typedef struct valort TpValorT;
 
 union dado
 {
-	TpValorI uvalorI;
-	TpValorN uvalorN;
-	TpValorD uvalorD;
-	TpValorC uvalorC;
-	TpValorT uvalorT;
+	TpValorI integer;
+	TpValorN numeric;
+	TpValorD date;
+	TpValorC character1;
+	TpValorT character20;
 };
 
 struct campo
@@ -72,3 +72,82 @@ struct banco
 	
 };
 typedef struct banco TpBanco;
+
+
+void criarBanco(TpBanco **pontDB, char nome[])
+{
+	*pontDB = (TpBanco*)malloc(sizeof(TpBanco));
+	strcpy(*pontDB->nome,nome);
+	*pontDB->pTabelas = NULL;
+}
+
+void caixaTabela(TpTabela **tabela, char nome[])
+{
+	*tabela = (TpTabela*)malloc(sizeof(TpTabela));
+	*tabela->ant=NULL;
+	strcpy(*tabela->nome,nome);
+	*tabela->pCampos=NULL
+	*tabela->prox=NULL;
+	
+}
+
+char criarTabela(TpTabela **pTabelas, char nome[])
+{
+	TpTabela *novaTabela;
+	novaTabela = caixaTabela(&novaTabela, nome);
+	
+	if(*pTabelas==NULL)
+	{
+		*pTabelas = novaTabela;
+		return 1;
+	}
+	TpTabela *aux = *pTabelas;
+	while(aux->prox!=NULL && strcmp(aux->nome,nome)!=0)
+		aux = aux->prox;
+	if(!strcmp(aux->nome,nome)==0)
+	{
+		aux->prox = novaTabela;
+		novaTabela->ant = aux;
+		
+		return 1;
+	}	
+	
+	return 0;
+}
+
+void caixaCampo(TpCampo **campo, char nome[],char tipo)
+{
+	*campo = (TpCampo*)malloc(sizeof(TpCampo));
+	*campo->prox=NULL;
+	strcpy(*campo->nome,nome);
+	*campo->tipo = tipo;
+	*campo->PK = 'N';
+	*campo->FK = NULL;
+	*campo->pDados=NULL;
+	*campo->pAtual=NULL;
+}
+
+char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
+{
+	TpCampo *novoCampo;
+	novoCampo = caixaCampo(&novoCampo, nome, tipo);
+	if(*pCampos==NULL)
+	{
+		*pCampos = novoCampo;
+		return 1;
+	}
+	TpCampo *aux = *pCampo;
+	while(aux->prox!=NULL && strcmp(aux->nome,nome)!=0)
+		aux = aux->prox;
+	if(!strcmp(aux->nome,nome)==0)
+	{
+		aux->prox = novoCampo;
+		
+		return 1;
+	}	
+	
+	return 0;
+}
+
+
+
