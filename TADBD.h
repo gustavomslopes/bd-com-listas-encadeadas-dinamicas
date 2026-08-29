@@ -77,24 +77,24 @@ typedef struct banco TpBanco;
 void criarBanco(TpBanco **pontDB, char nome[])
 {
 	*pontDB = (TpBanco*)malloc(sizeof(TpBanco));
-	strcpy(*pontDB->nome,nome);
-	*pontDB->pTabelas = NULL;
+	strcpy((*pontDB)->nome,nome);
+	(*pontDB)->pTabelas = NULL;
 }
 
 void caixaTabela(TpTabela **tabela, char nome[])
 {
 	*tabela = (TpTabela*)malloc(sizeof(TpTabela));
-	*tabela->ant=NULL;
-	strcpy(*tabela->nome,nome);
-	*tabela->pCampos=NULL
-	*tabela->prox=NULL;
+	(*tabela)->ant=NULL;
+	strcpy((*tabela)->nome,nome);
+	(*tabela)->pCampos=NULL;
+	(*tabela)->prox=NULL;
 	
 }
 
 char criarTabela(TpTabela **pTabelas, char nome[])
 {
 	TpTabela *novaTabela;
-	novaTabela = caixaTabela(&novaTabela, nome);
+	caixaTabela(&novaTabela, nome);
 	
 	if(*pTabelas==NULL)
 	{
@@ -111,32 +111,32 @@ char criarTabela(TpTabela **pTabelas, char nome[])
 		
 		return 1;
 	}	
-	
+	free(novaTabela);
 	return 0;
 }
 
 void caixaCampo(TpCampo **campo, char nome[],char tipo)
 {
 	*campo = (TpCampo*)malloc(sizeof(TpCampo));
-	*campo->prox=NULL;
-	strcpy(*campo->nome,nome);
-	*campo->tipo = tipo;
-	*campo->PK = 'N';
-	*campo->FK = NULL;
-	*campo->pDados=NULL;
-	*campo->pAtual=NULL;
+	(*campo)->prox=NULL;
+	strcpy((*campo)->nome,nome);
+	(*campo)->tipo = tipo;
+	(*campo)->PK = 'N';
+	(*campo)->FK = NULL;
+	(*campo)->pDados=NULL;
+	(*campo)->pAtual=NULL;
 }
 
 char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
 {
 	TpCampo *novoCampo;
-	novoCampo = caixaCampo(&novoCampo, nome, tipo);
+	caixaCampo(&novoCampo, nome, tipo);
 	if(*pCampos==NULL)
 	{
 		*pCampos = novoCampo;
 		return 1;
 	}
-	TpCampo *aux = *pCampo;
+	TpCampo *aux = *pCampos;
 	while(aux->prox!=NULL && strcmp(aux->nome,nome)!=0)
 		aux = aux->prox;
 	if(!strcmp(aux->nome,nome)==0)
@@ -145,7 +145,119 @@ char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
 		
 		return 1;
 	}	
+	free(novoCampo);
+	return 0;
+}
+
+union dado converterValor(char tipo, char *texto)
+{
+    union dado valor;
+
+    switch (tipo)
+    {
+        case 'I':
+            valor.integer.valorI = atoi(texto);
+            valor.integer.prox = NULL;
+            break;
+
+        case 'N':
+            valor.numeric.valorN = atof(texto);
+            valor.numeric.prox = NULL;
+            break;
+
+        case 'D':
+            strcpy(valor.date.valorD, texto);
+            valor.date.prox = NULL;
+            break;
+
+        case 'C':
+            valor.character1.valorC = texto[0];
+            valor.character1.prox = NULL;
+            break;
+
+        case 'T':
+            strcpy(valor.character20.valorT, texto);
+            valor.character20.prox = NULL;
+            break;
+    }
+
+    return valor;
+}
+
+char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
+{
+	TpCampo *aux=*pCampos;
+	while(aux!=NULL && strcmp(aux->nome,nome)!=0)
+		aux=aux->prox;
+	if(aux!=NULL)
+	{
+		union dado *novoNo = (union dado*) malloc(sizeof(union dado));
+	    *novoNo = Dado;
+	    switch (aux->tipo)
+	    {
+	        case 'I':
+	            if (aux->pDados == NULL)
+	                aux->pDados = novoNo;
+	            else
+	            {
+	                union dado *p = aux->pDados;
+	                while (p->integer.prox != NULL)
+	                    p = (union dado*) p->integer.prox;
+	                p->integer.prox = (TpValorI*) novoNo;
+	            }
+	            break;
 	
+	        case 'N':
+	            if (aux->pDados == NULL)
+	                aux->pDados = novoNo;
+	            else
+	            {
+	                union dado *p = aux->pDados;
+	                while (p->numeric.prox != NULL)
+	                    p = (union dado*) p->numeric.prox;
+	                p->numeric.prox = (TpValorN*) novoNo;
+	            }
+	            break;
+	
+	        case 'D':
+	            if (aux->pDados == NULL)
+	                aux->pDados = novoNo;
+	            else
+	            {
+	                union dado *p = aux->pDados;
+	                while (p->date.prox != NULL)
+	                    p = (union dado*) p->date.prox;
+	                p->date.prox = (TpValorD*) novoNo;
+	            }
+	            break;
+	
+	        case 'C':
+	            if (aux->pDados == NULL)
+	                aux->pDados = novoNo;
+	            else
+	            {
+	                union dado *p = aux->pDados;
+	                while (p->character1.prox != NULL)
+	                    p = (union dado*) p->character1.prox;
+	                p->character1.prox = (TpValorC*) novoNo;
+	            }
+	            break;
+	
+	        case 'T':
+	            if (aux->pDados == NULL)
+	                aux->pDados = novoNo;
+	            else
+	            {
+	                union dado *p = aux->pDados;
+	                while (p->character20.prox != NULL)
+	                    p = (union dado*) p->character20.prox;
+	                p->character20.prox = (TpValorT*) novoNo;
+	            }
+	            break;
+	    }
+	
+	    return 1;
+	}
 	return 0;
 }
 
