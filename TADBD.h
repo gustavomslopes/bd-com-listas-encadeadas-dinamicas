@@ -202,8 +202,8 @@ char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
 	            {
 	                union dado *p = aux->pDados;
 	                while (p->integer.prox != NULL)
-	                    p = (union dado*) p->integer.prox;
-	                p->integer.prox = (TpValorI*) novoNo;
+	                    p = p->integer.prox;
+	                p->integer.prox = novoNo;
 	            }
 	            break;
 	
@@ -214,8 +214,8 @@ char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
 	            {
 	                union dado *p = aux->pDados;
 	                while (p->numeric.prox != NULL)
-	                    p = (union dado*) p->numeric.prox;
-	                p->numeric.prox = (TpValorN*) novoNo;
+	                    p = p->numeric.prox;
+	                p->numeric.prox = novoNo;
 	            }
 	            break;
 	
@@ -226,8 +226,8 @@ char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
 	            {
 	                union dado *p = aux->pDados;
 	                while (p->date.prox != NULL)
-	                    p = (union dado*) p->date.prox;
-	                p->date.prox = (TpValorD*) novoNo;
+	                    p = p->date.prox;
+	                p->date.prox = novoNo;
 	            }
 	            break;
 	
@@ -238,8 +238,8 @@ char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
 	            {
 	                union dado *p = aux->pDados;
 	                while (p->character1.prox != NULL)
-	                    p = (union dado*) p->character1.prox;
-	                p->character1.prox = (TpValorC*) novoNo;
+	                    p = p->character1.prox;
+	                p->character1.prox = novoNo;
 	            }
 	            break;
 	
@@ -250,8 +250,8 @@ char criarDado(TpCampo **pCampos,char nome[],union dado Dado)
 	            {
 	                union dado *p = aux->pDados;
 	                while (p->character20.prox != NULL)
-	                    p = (union dado*) p->character20.prox;
-	                p->character20.prox = (TpValorT*) novoNo;
+	                    p = p->character20.prox;
+	                p->character20.prox = novoNo;
 	            }
 	            break;
 	    }
