@@ -249,3 +249,101 @@ void lerScriptUsuario(char scriptString[])
 	}
 	scriptString[TL] = '\0';
 }
+
+void imprimirComandos(DescritorLista *descLista)
+{
+	Lista *aux = descLista->inicio;
+	int numComando=1,i;
+	char terminou;
+
+	while(aux != NULL)
+	{
+		printf("\nComando %d: ", numComando);
+
+		i=0;
+		terminou=0;
+		while(!terminou && i < 100)
+		{
+			printf("%s ", aux->comando[i].palavra);
+
+			if(aux->comando[i].tipo == TOK_PONTUACAO && strcmp(aux->comando[i].palavra, ";") == 0)
+				terminou=1;
+
+			i++;
+		}
+		printf("\n");
+
+		aux = aux->prox;
+		numComando++;
+	}
+}
+
+void interpretarCreate(TpBanco **banco, Token comando[])
+{
+	char nomeCampo[20],tipo;
+	if(!stricmp(comando[1].palavra, "TABLE"))
+	{
+		if(*banco != NULL)
+			criarTabela(&((*banco)->pTabelas), comando[2].palavra);
+	}
+	else if(!stricmp(comando[1].palavra, "DATABASE"))
+	{
+		if(*banco == NULL)
+			criarBanco(banco, comando[2].palavra);
+	}
+}
+
+
+void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
+{
+	Lista *aux = descLista->inicio;
+	while(aux != NULL)
+	{
+		if(!stricmp(aux->comando[0].palavra, "CREATE"))
+			interpretarCreate(banco, aux->comando);
+		/*else if(!stricmp(aux->comando[0].palavra, "INSERT"))
+			interpretarInsert(*banco, aux->comando);
+		else if(!stricmp(aux->comando[0].palavra, "SELECT"))
+			interpretarSelect(*banco, aux->comando);
+		else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
+			interpretarUpdate(*banco, aux->comando);
+		else if(!stricmp(aux->comando[0].palavra, "DELETE"))
+			interpretarDelete(*banco, aux->comando);
+		else if(!stricmp(aux->comando[0].palavra, "ALTER"))
+			interpretarAlter(*banco, aux->comando);*/
+
+		aux = aux->prox;
+	}
+}
+
+void imprimirBanco(TpBanco *banco)
+{
+	if(banco == NULL)
+	{
+		printf("Nenhum banco de dados criado.\n");
+		return;
+	}
+
+	printf("=== BANCO: %s ===\n", banco->nome);
+
+	TpTabela *tabela = banco->pTabelas;
+	if(tabela == NULL)
+		printf("(nenhuma tabela criada)\n");
+
+	while(tabela != NULL)
+	{
+		printf("  TABELA: %s\n", tabela->nome);
+
+		TpCampo *campo = tabela->pCampos;
+		if(campo == NULL)
+			printf("    (nenhum campo criado)\n");
+
+		while(campo != NULL)
+		{
+			printf("    CAMPO: %s (tipo: %c)\n", campo->nome, campo->tipo);
+			campo = campo->prox;
+		}
+
+		tabela = tabela->prox;
+	}
+}
