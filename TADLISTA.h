@@ -18,7 +18,7 @@ struct descritorlista
 };
 typedef struct descritorlista DescritorLista;
 
-void init(DescritorLista *descritor)
+void initDescLista(DescritorLista *descritor)
 {
 	(*descritor).inicio = NULL;
 	(*descritor).fim = NULL;

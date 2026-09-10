@@ -14,8 +14,9 @@ int main()
 	Token tokens[1000]; 
 	int TL;
 	DescritorLista descLista;
-	TpBanco *banco = NULL; 
-	init(&descLista); 
+	TpBanco *banco;
+	initBanco(&banco);
+	initDescLista(&descLista); 
 
 	printf("### BANCO DE DADOS ###\n\n");
 	printf("Deseja importar um arquivo [S/N]? ");
@@ -41,6 +42,7 @@ int main()
 	printf("\n\n");
 	tokenizarComandos(stringFormatada, tokens, &TL);
 	separarComandos(&descLista, tokens, TL);
+	printf("\n\n");
 	imprimirComandos(&descLista);
 	interpretarComandos(&banco, &descLista);
 	imprimirBanco(banco);
