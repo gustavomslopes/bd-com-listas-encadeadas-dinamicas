@@ -1,35 +1,35 @@
 struct valori
 {
 	int valorI;
-	struct valori *prox;
+	union dado *prox;
 };
 typedef struct valori TpValorI;
 
 struct valorn
 {
 	float valorN;
-	struct valorn *prox;
+	union dado *prox;
 };
 typedef struct valorn TpValorN;
 
 struct valord
 {
 	char valorD[10];
-	struct valord *prox;
+	union dado *prox;
 };
 typedef struct valord TpValorD;
 
 struct valorc
 {
 	char valorC;
-	struct valorc *prox;
+	union dado *prox;
 };
 typedef struct valorc TpValorC;
 
 struct valort
 {
 	char valorT[20];
-	struct valort *prox;
+	union dado *prox;
 };
 typedef struct valort TpValorT;
 
