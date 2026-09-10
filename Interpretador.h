@@ -254,23 +254,19 @@ void imprimirComandos(DescritorLista *descLista)
 {
 	Lista *aux = descLista->inicio;
 	int numComando=1,i;
-	char terminou;
 
 	while(aux != NULL)
 	{
 		printf("\nComando %d: ", numComando);
 
 		i=0;
-		terminou=0;
-		while(!terminou && i < 100)
+		while(aux->comando[i].tipo != TOK_PONTUACAO || strcmp(aux->comando[i].palavra, ";") != 0)
 		{
 			printf("%s ", aux->comando[i].palavra);
 
-			if(aux->comando[i].tipo == TOK_PONTUACAO && strcmp(aux->comando[i].palavra, ";") == 0)
-				terminou=1;
-
 			i++;
 		}
+		printf("%s ", aux->comando[i].palavra);
 		printf("\n");
 
 		aux = aux->prox;
@@ -363,19 +359,22 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 	Lista *aux = descLista->inicio;
 	while(aux != NULL)
 	{
-		if(!stricmp(aux->comando[0].palavra, "CREATE"))
-			interpretarCreate(banco, aux->comando);
-		/*else if(!stricmp(aux->comando[0].palavra, "INSERT"))
-			interpretarInsert(*banco, aux->comando);
-		else if(!stricmp(aux->comando[0].palavra, "SELECT"))
-			interpretarSelect(*banco, aux->comando);
-		else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
-			interpretarUpdate(*banco, aux->comando);
-		else if(!stricmp(aux->comando[0].palavra, "DELETE"))
-			interpretarDelete(*banco, aux->comando);
-		else if(!stricmp(aux->comando[0].palavra, "ALTER"))
-			interpretarAlter(*banco, aux->comando);*/
-
+		if(aux->comando[0].tipo == TOK_COMANDO)
+		{
+			if(!stricmp(aux->comando[0].palavra, "CREATE"))
+				interpretarCreate(banco, aux->comando);
+			/*else if(!stricmp(aux->comando[0].palavra, "INSERT"))
+				interpretarInsert(*banco, aux->comando);
+			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
+				interpretarSelect(*banco, aux->comando);
+			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
+				interpretarUpdate(*banco, aux->comando);
+			else if(!stricmp(aux->comando[0].palavra, "DELETE"))
+				interpretarDelete(*banco, aux->comando);
+			else if(!stricmp(aux->comando[0].palavra, "ALTER"))
+				interpretarAlter(*banco, aux->comando);*/
+			
+		}
 		aux = aux->prox;
 	}
 }
