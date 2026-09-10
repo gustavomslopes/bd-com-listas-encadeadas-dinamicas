@@ -284,7 +284,71 @@ void interpretarCreate(TpBanco **banco, Token comando[])
 	if(!stricmp(comando[1].palavra, "TABLE"))
 	{
 		if(*banco != NULL)
+		{
+			
+		
 			criarTabela(&((*banco)->pTabelas), comando[2].palavra);
+			TpTabela *tabelaAtual = (*banco)->pTabelas;
+			while(tabelaAtual->prox != NULL)
+				tabelaAtual = tabelaAtual->prox;
+
+			// agora percorre as colunas: CREATE(0) TABLE(1) nome(2) "("(3) col TIPO , col TIPO ) ;
+			int i = 4;
+			int pilha = 1;
+			while(pilha>0)
+			{
+				if(strcmp(comando[i].palavra, ",") == 0)
+						i++;
+				else if(stricmp(comando[i].palavra,"CONSTRAINT")==0)
+				{
+					while(stricmp(comando[i].palavra, "KEY") != 0 && strcmp(comando[i].palavra, ";") != 0)
+						i++;
+					i+=2;
+					TpCampo *campoPK = tabelaAtual->pCampos;
+					while(campoPK != NULL && strcmp(campoPK->nome, comando[i].palavra) != 0)
+						campoPK = campoPK->prox;
+					if(campoPK != NULL)
+						campoPK->PK = 'S';
+				
+					pilha = 0;
+				}
+				else if(strcmp(comando[i].palavra, "(") == 0)
+				{
+					pilha++;
+					i++;
+				}
+				else if(strcmp(comando[i].palavra, ")") == 0)
+				{
+					pilha--;
+					i++;
+				}
+				else if(pilha==1)
+				{
+					strcpy(nomeCampo, comando[i].palavra);
+					i++; // avança pro tipo
+					if(!stricmp(comando[i].palavra, "INT") || !stricmp(comando[i].palavra, "INTEGER"))
+						tipo = 'I';
+					else if(!stricmp(comando[i].palavra, "FLOAT") || !stricmp(comando[i].palavra, "DOUBLE"))
+						tipo = 'N';
+					else if(!stricmp(comando[i].palavra, "DATE"))
+						tipo = 'D';
+					else if(!stricmp(comando[i].palavra, "CHAR") || !stricmp(comando[i].palavra, "CHARACTER"))
+						tipo = 'C';
+					else if(!stricmp(comando[i].palavra, "VARCHAR"))
+						tipo = 'T';
+	
+					criarCampo(&(tabelaAtual->pCampos), nomeCampo, tipo, 'N');
+	
+					i++; // avança pra depois do tipo
+					if(strcmp(comando[i].palavra, ",") == 0)
+						i++; // pula a vírgula
+				}
+				else
+				{
+					i++;
+				}
+			}
+		}
 	}
 	else if(!stricmp(comando[1].palavra, "DATABASE"))
 	{
@@ -340,7 +404,7 @@ void imprimirBanco(TpBanco *banco)
 
 		while(campo != NULL)
 		{
-			printf("    CAMPO: %s (tipo: %c)\n", campo->nome, campo->tipo);
+			printf("    CAMPO: %s (tipo: %c,PK: %c)\n", campo->nome, campo->tipo,campo->PK);
 			campo = campo->prox;
 		}
 
