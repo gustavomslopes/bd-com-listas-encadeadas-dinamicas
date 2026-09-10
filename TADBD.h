@@ -73,10 +73,6 @@ struct banco
 };
 typedef struct banco TpBanco;
 
-void initBanco(TpBanco **pontDB)
-{
-	*pontDB = NULL;
-}
 
 void criarBanco(TpBanco **pontDB, char nome[])
 {
