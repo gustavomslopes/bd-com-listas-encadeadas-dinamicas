@@ -24,6 +24,11 @@ void init(DescritorLista *descritor)
 	(*descritor).fim = NULL;
 }
 
+char isEmpty(DescritorLista descritor)
+{
+	return descritor.inicio == NULL;
+}
+
 void add(DescritorLista *descritor, Token info[], int TL)
 {
     Lista *novo = (Lista *) malloc(sizeof(Lista));
@@ -33,7 +38,7 @@ void add(DescritorLista *descritor, Token info[], int TL)
     }
     novo->prox = NULL;
 
-    if ((*descritor).inicio == NULL)
+    if (isEmpty(*descritor))
 	{
         (*descritor).inicio = novo;
         (*descritor).fim = novo;
@@ -43,6 +48,17 @@ void add(DescritorLista *descritor, Token info[], int TL)
         (*descritor).fim->prox = novo;
         (*descritor).fim = novo;
     }
+}
+
+Lista *del(DescritorLista *descritor)
+{
+	if(isEmpty(*descritor))
+		return NULL;
+	Lista *aux = (*descritor).inicio;
+	(*descritor).inicio = (*descritor).inicio->prox;
+	if(descritor->inicio == NULL)
+		descritor->fim = NULL;
+	return aux;
 }
 
 

@@ -18,13 +18,13 @@ int main()
 	init(&descLista); 
 
 	printf("### BANCO DE DADOS ###\n\n");
-	printf("Deseja importar um arquivo [S/N]? ");
-	if(toupper(getche()) == 'S')
-	{
-		printf("\nNome do arquivo sql: ");
-//		//Verificar se arquivo SQL
-		gets(nomeArq);
-		FILE *ptr = fopen(nomeArq, "r");
+//	printf("Deseja importar um arquivo [S/N]? ");
+//	if(toupper(getche()) == 'S')
+//	{
+//		printf("\nNome do arquivo sql: ");
+////		//Verificar se arquivo SQL
+//		gets(nomeArq);
+		FILE *ptr = fopen("script.sql", "r");
 		if(ptr != NULL)
 		{
 			toString(ptr, scriptString);
@@ -32,17 +32,19 @@ int main()
 		}
 		else
 			printf("Falha ao importar o arquivo!\n");
-	}
-	else
-		lerScriptUsuario(scriptString);
+//	}
+//	else
+//		lerScriptUsuario(scriptString);
 
 	toStringFormatada(scriptString, stringFormatada);
 	printf("%s", stringFormatada);
 	printf("\n\n");
 	tokenizarComandos(stringFormatada, tokens, &TL);
 	separarComandos(&descLista, tokens, TL);
+	printf("\n\n");
 	imprimirComandos(&descLista);
 	interpretarComandos(&banco, &descLista);
+	printf("\n\n");
 	imprimirBanco(banco);
 	
 	

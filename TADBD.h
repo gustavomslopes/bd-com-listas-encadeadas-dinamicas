@@ -91,7 +91,7 @@ void caixaTabela(TpTabela **tabela, char nome[])
 	
 }
 
-char criarTabela(TpTabela **pTabelas, char nome[])
+TpTabela * criarTabela(TpTabela **pTabelas, char nome[])
 {
 	TpTabela *novaTabela;
 	caixaTabela(&novaTabela, nome);
@@ -99,7 +99,7 @@ char criarTabela(TpTabela **pTabelas, char nome[])
 	if(*pTabelas==NULL)
 	{
 		*pTabelas = novaTabela;
-		return 1;
+		return novaTabela;
 	}
 	TpTabela *aux = *pTabelas;
 	while(aux->prox!=NULL && strcmp(aux->nome,nome)!=0)
@@ -109,10 +109,10 @@ char criarTabela(TpTabela **pTabelas, char nome[])
 		aux->prox = novaTabela;
 		novaTabela->ant = aux;
 		
-		return 1;
+		return novaTabela;
 	}	
 	free(novaTabela);
-	return 0;
+	return NULL;
 }
 
 void caixaCampo(TpCampo **campo, char nome[],char tipo)
