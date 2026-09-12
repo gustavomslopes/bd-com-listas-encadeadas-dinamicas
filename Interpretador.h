@@ -367,9 +367,9 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 char interpretarCreate(TpBanco **banco, Token comando[])
 {
 	int i=1, temCampo=0, temPK=0;
-	TpCampo *campoPK;
-	TpTabela *tabelaAtual;
-	char nomeCampo[20], tipo;
+	TpCampo *campoPK,*campoFK,*campoFK2;
+	TpTabela *tabelaAtual,*tabelaFK;
+	char nomeCampo[20], tipo, aux[20];
 	if(comando[i].tipo == TOK_TABLE)
 	{
 		if(*banco != NULL)
@@ -406,27 +406,101 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 											i++;
 											if(comando[i].tipo == TOK_STRING)
 											{
-												campoPK = tabelaAtual->pCampos;
+												campoPK = tabelaAtual->pCampos;	
 												while(campoPK != NULL && stricmp(campoPK->nome, comando[i].palavra) != 0)
 													campoPK = campoPK->prox;
 												if(campoPK != NULL)
 													campoPK->PK = 'S';
 												i++;
+												if(comando[i].tipo == TOK_VIRGULA)
+												{
+													i++;
+													campoPK = tabelaAtual->pCampos;	
+													while(campoPK != NULL && stricmp(campoPK->nome, comando[i].palavra) != 0)
+														campoPK = campoPK->prox;
+													if(campoPK != NULL)
+														campoPK->PK = 'S';
+													i++;
+												}
 												if(comando[i].tipo == TOK_FECHA_PARENTESE)
 													i++;
 												if(comando[i].tipo == TOK_VIRGULA)
-													i++;
+												{
+													i++;	
+												}
 												else if(comando[i].tipo != TOK_FECHA_PARENTESE)
 													return erro("Falta )");
 												temPK=1;
 											}
 										}
 									}
-									else if(temPK==1)
+									else if(comando[i].tipo == TOK_PRIMARY && comando[i+1].tipo == TOK_KEY && temPK==1)
 										return erro("Duas PK!");
 									else if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
 									{
-										
+										i+=2;
+										if(comando[i].tipo == TOK_ABRE_PARENTESE)
+										{
+											i++;
+											if(comando[i].tipo == TOK_STRING)
+											{
+												campoFK = tabelaAtual->pCampos;	
+												while(campoFK != NULL && stricmp(campoFK->nome, comando[i].palavra) != 0)
+													campoFK = campoFK->prox;
+									
+												if(campoFK != NULL)
+												{
+													i++; 
+													if(comando[i].tipo == TOK_FECHA_PARENTESE)
+													{
+														i++; 
+														if(comando[i].tipo == TOK_STRING && stricmp(comando[i].palavra,"REFERENCES")==0)
+														{
+															i++; 
+															tabelaFK = (*banco)->pTabelas;
+															while(tabelaFK != NULL && stricmp(tabelaFK->nome,comando[i].palavra)!=0)
+																tabelaFK = tabelaFK->prox;
+									
+															if(tabelaFK != NULL)
+															{
+																i++; 
+																if(comando[i].tipo == TOK_ABRE_PARENTESE)
+																{
+																	i++; 
+																	campoFK2 = tabelaFK->pCampos;
+																	while(campoFK2 != NULL && stricmp(campoFK2->nome, comando[i].palavra) != 0)
+																		campoFK2 = campoFK2->prox;
+									
+																	if(campoFK2 != NULL)
+																	{
+																		campoFK->FK = campoFK2;
+																		i++;
+																	}
+																	else
+																		return erro("Campo referenciado nao encontrado");
+																}
+																else
+																	return erro("Falta ( apos nome da tabela referenciada");
+															}
+															else
+																return erro("Tabela referenciada nao encontrada");
+														}
+														else
+															return erro("Esperado REFERENCES");
+													}
+													else
+														return erro("Falta ) apos campo FK");
+												}
+												else
+													return erro("Campo FK nao encontrado na tabela atual");
+												if(comando[i].tipo == TOK_FECHA_PARENTESE)
+													i++;
+												if(comando[i].tipo == TOK_VIRGULA)
+													i++;
+												else if(comando[i].tipo != TOK_FECHA_PARENTESE)
+													return erro("Falta )");
+											}
+										}
 									}
 								}
 							}
@@ -635,7 +709,10 @@ void imprimirBanco(TpBanco *banco)
 	
 			while(campo != NULL)
 			{
-				printf("    CAMPO: %s (tipo: %c,PK: %c)\n", campo->nome, campo->tipo,campo->PK);
+				if(campo->FK == NULL)
+					printf("    CAMPO: %s (tipo: %c,PK: %c)\n", campo->nome, campo->tipo,campo->PK);
+				else
+					printf("    CAMPO: %s (tipo: %c,PK: %c,FK: %s)\n", campo->nome, campo->tipo,campo->PK,campo->FK->nome);
 				campo = campo->prox;
 			}
 	
