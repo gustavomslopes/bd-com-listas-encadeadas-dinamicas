@@ -364,10 +364,97 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 	return 1;
 }
 
+char criarPK(TpTabela *tabelaAtual, Token comando[], int *i)
+{
+	TpCampo *campoPK;
+	(*i)++;
+	campoPK = tabelaAtual->pCampos;	
+	while(campoPK != NULL && stricmp(campoPK->nome, comando[*i].palavra) != 0)
+		campoPK = campoPK->prox;
+	if(campoPK != NULL)
+		campoPK->PK = 'S';
+	else
+		return erro("Campo nao encontrado para PK!");
+	(*i)++;
+	return 1;
+}
+
+TpCampo *buscarCampoPK(TpTabela *tabelaAtual, Token comando[],int  *i)
+{
+	TpCampo *campoFK;
+	(*i)++;
+	campoFK = tabelaAtual->pCampos;	
+	while(campoFK != NULL && stricmp(campoFK->nome, comando[*i].palavra) != 0)
+		campoFK = campoFK->prox;
+	if(campoFK!=NULL)
+		return campoFK;
+	return NULL;
+}
+
+char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i)
+{
+	TpCampo *campoFK, *campoFK2;
+	TpTabela *tabelaFK;
+	campoFK = buscarCampoPK(tabelaAtual, comando, &*i);
+	if(campoFK != NULL)
+	{
+		(*i)++; 
+		if(comando[*i].tipo == TOK_FECHA_PARENTESE)
+		{
+			(*i)++; 
+			if(comando[*i].tipo == TOK_STRING && stricmp(comando[*i].palavra,"REFERENCES")==0)
+			{
+				(*i)++; 
+				tabelaFK = (*banco)->pTabelas;
+				while(tabelaFK != NULL && stricmp(tabelaFK->nome,comando[*i].palavra)!=0)
+					tabelaFK = tabelaFK->prox;
+
+				if(tabelaFK != NULL)
+				{
+					(*i)++; 
+					if(comando[*i].tipo == TOK_ABRE_PARENTESE)
+					{
+						campoFK2 = buscarCampoPK(tabelaFK, comando, &*i);
+						if(campoFK2 != NULL)
+						{
+							campoFK->FK = campoFK2;
+							(*i)++;
+						}
+						else
+							return erro("Campo referenciado nao encontrado");
+					}
+					else
+						return erro("Falta ( apos nome da tabela referenciada");
+				}
+				else
+					return erro("Tabela referenciada nao encontrada");
+			}
+			else
+				return erro("Esperado REFERENCES");
+		}
+		else
+			return erro("Falta ) apos campo FK");
+	}
+	else
+		return erro("Campo FK nao encontrado na tabela atual");
+	if(comando[*i].tipo == TOK_FECHA_PARENTESE)
+	{
+		(*i)++;
+		if(comando[*i].tipo == TOK_VIRGULA)
+			(*i)++;
+		else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
+			return erro("Falta )");
+	}
+	else 
+		return erro("Falta )");
+	
+	return 1;
+}
+
 char interpretarCreate(TpBanco **banco, Token comando[])
 {
 	int i=1, temCampo=0, temPK=0;
-	TpCampo *campoPK,*campoFK,*campoFK2;
+	TpCampo *campoFK,*campoFK2;
 	TpTabela *tabelaAtual,*tabelaFK;
 	char nomeCampo[20], tipo, aux[20];
 	if(comando[i].tipo == TOK_TABLE)
@@ -401,37 +488,26 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 									if(comando[i].tipo == TOK_PRIMARY && comando[i+1].tipo == TOK_KEY && temPK==0)
 									{
 										i+=2;
-										if(comando[i].tipo == TOK_ABRE_PARENTESE)
+										if(comando[i].tipo == TOK_ABRE_PARENTESE && comando[i+1].tipo == TOK_STRING )
 										{
-											i++;
-											if(comando[i].tipo == TOK_STRING)
+											if(!criarPK(tabelaAtual, comando, &i))
+												return erro("Falha ao criar PK");
+											if(comando[i].tipo == TOK_VIRGULA && comando[i+1].tipo == TOK_STRING)
 											{
-												campoPK = tabelaAtual->pCampos;	
-												while(campoPK != NULL && stricmp(campoPK->nome, comando[i].palavra) != 0)
-													campoPK = campoPK->prox;
-												if(campoPK != NULL)
-													campoPK->PK = 'S';
+												if(!criarPK(tabelaAtual, comando, &i))
+													return erro("Falha ao criar PK");
+											}
+											if(comando[i].tipo == TOK_FECHA_PARENTESE)
+											{
 												i++;
 												if(comando[i].tipo == TOK_VIRGULA)
-												{
-													i++;
-													campoPK = tabelaAtual->pCampos;	
-													while(campoPK != NULL && stricmp(campoPK->nome, comando[i].palavra) != 0)
-														campoPK = campoPK->prox;
-													if(campoPK != NULL)
-														campoPK->PK = 'S';
-													i++;
-												}
-												if(comando[i].tipo == TOK_FECHA_PARENTESE)
-													i++;
-												if(comando[i].tipo == TOK_VIRGULA)
-												{
 													i++;	
-												}
 												else if(comando[i].tipo != TOK_FECHA_PARENTESE)
 													return erro("Falta )");
 												temPK=1;
 											}
+											else
+												return erro("Falta )");												
 										}
 									}
 									else if(comando[i].tipo == TOK_PRIMARY && comando[i+1].tipo == TOK_KEY && temPK==1)
@@ -439,71 +515,17 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 									else if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
 									{
 										i+=2;
-										if(comando[i].tipo == TOK_ABRE_PARENTESE)
+										if(comando[i].tipo == TOK_ABRE_PARENTESE && comando[i+1].tipo == TOK_STRING)
 										{
-											i++;
-											if(comando[i].tipo == TOK_STRING)
-											{
-												campoFK = tabelaAtual->pCampos;	
-												while(campoFK != NULL && stricmp(campoFK->nome, comando[i].palavra) != 0)
-													campoFK = campoFK->prox;
-									
-												if(campoFK != NULL)
-												{
-													i++; 
-													if(comando[i].tipo == TOK_FECHA_PARENTESE)
-													{
-														i++; 
-														if(comando[i].tipo == TOK_STRING && stricmp(comando[i].palavra,"REFERENCES")==0)
-														{
-															i++; 
-															tabelaFK = (*banco)->pTabelas;
-															while(tabelaFK != NULL && stricmp(tabelaFK->nome,comando[i].palavra)!=0)
-																tabelaFK = tabelaFK->prox;
-									
-															if(tabelaFK != NULL)
-															{
-																i++; 
-																if(comando[i].tipo == TOK_ABRE_PARENTESE)
-																{
-																	i++; 
-																	campoFK2 = tabelaFK->pCampos;
-																	while(campoFK2 != NULL && stricmp(campoFK2->nome, comando[i].palavra) != 0)
-																		campoFK2 = campoFK2->prox;
-									
-																	if(campoFK2 != NULL)
-																	{
-																		campoFK->FK = campoFK2;
-																		i++;
-																	}
-																	else
-																		return erro("Campo referenciado nao encontrado");
-																}
-																else
-																	return erro("Falta ( apos nome da tabela referenciada");
-															}
-															else
-																return erro("Tabela referenciada nao encontrada");
-														}
-														else
-															return erro("Esperado REFERENCES");
-													}
-													else
-														return erro("Falta ) apos campo FK");
-												}
-												else
-													return erro("Campo FK nao encontrado na tabela atual");
-												if(comando[i].tipo == TOK_FECHA_PARENTESE)
-													i++;
-												if(comando[i].tipo == TOK_VIRGULA)
-													i++;
-												else if(comando[i].tipo != TOK_FECHA_PARENTESE)
-													return erro("Falta )");
-											}
+											if(!criarFK(tabelaAtual, comando, &*banco, &i))
+												return erro("Falha ao criar FK");
+											
 										}
 									}
 								}
 							}
+							else if(comando[i].tipo == TOK_CONSTRAINT && !temCampo)
+								return erro("Nao ha campos para ter constraint");
 							else
 								return erro("Campo estruturado errado!");
 						}
@@ -540,104 +562,6 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 		return erro("Comando create nao reconhecido!");
 		
 }
-//{
-//	char nomeCampo[20],tipo;
-//	int i, pilha, temPK;
-//	
-//	if(!stricmp(comando[1].palavra, "TABLE"))
-//	{
-//		if(*banco != NULL)
-//		{
-//			criarTabela(&((*banco)->pTabelas), comando[2].palavra);
-//			TpTabela *tabelaAtual = (*banco)->pTabelas;
-//			while(tabelaAtual->prox != NULL)
-//				tabelaAtual = tabelaAtual->prox;
-
-//			i = 4;
-//			pilha = 1;
-//			temPK = 0;
-//			while(pilha>0 && temPK<=1)
-//			{
-//				if(strcmp(comando[i].palavra, ",") == 0)
-//						i++;
-//				else if(stricmp(comando[i].palavra,"CONSTRAINT")==0)
-//				{
-//					i+=2;
-//					if(stricmp(comando[i].palavra,"PRIMARY")==0 && temPK==0)
-//					{
-//						while(stricmp(comando[i].palavra, "KEY") != 0)
-//							i++;
-//						i+=2;
-//						TpCampo *campoPK = tabelaAtual->pCampos;
-//						while(campoPK != NULL && strcmp(campoPK->nome, comando[i].palavra) != 0)
-//							campoPK = campoPK->prox;
-//						if(campoPK != NULL)
-//							campoPK->PK = 'S';
-//						i+=2;
-//						if(comando[i].tipo == TOK_STRING)
-//						{
-//							campoPK = tabelaAtual->pCampos;
-//							while(campoPK != NULL && strcmp(campoPK->nome, comando[i].palavra) != 0)
-//								campoPK = campoPK->prox;
-//							if(campoPK != NULL)
-//								campoPK->PK = 'S';
-//						}
-//						temPK=1;
-//					}
-//					else
-//					{
-//						temPK++;
-//						printf("ERRO: DUAS PK!");
-//					}
-//						
-//					
-//				}
-//				else if(strcmp(comando[i].palavra, "(") == 0)
-//				{
-//					pilha++;
-//					i++;
-//				}
-//				else if(strcmp(comando[i].palavra, ")") == 0)
-//				{
-//					pilha--;
-//					i++;
-//				}
-//				else if(pilha==1)
-//				{
-//					if(comando[i].tipo == TOK_STRING && comando[i+1].tipo == TOK_TIPO_DADO)
-//					{
-//						strcpy(nomeCampo, comando[i].palavra);
-//						i++;
-//						if(!stricmp(comando[i].palavra, "INT") || !stricmp(comando[i].palavra, "INTEGER"))
-//							tipo = 'I';
-//						else if(!stricmp(comando[i].palavra, "FLOAT") || !stricmp(comando[i].palavra, "DOUBLE"))
-//							tipo = 'N';
-//						else if(!stricmp(comando[i].palavra, "DATE"))
-//							tipo = 'D';
-//						else if(!stricmp(comando[i].palavra, "CHAR") || !stricmp(comando[i].palavra, "CHARACTER"))
-//							tipo = 'C';
-//						
-//		
-//						criarCampo(&(tabelaAtual->pCampos), nomeCampo, tipo, 'N');
-//		
-//						i++; 
-//						if(strcmp(comando[i].palavra, ",") == 0)
-//							i++;
-//					}
-//					
-//				}
-//				else
-//					i++;
-//			}
-//		}
-//	}
-//	else if(!stricmp(comando[1].palavra, "DATABASE"))
-//	{
-//		if(*banco == NULL)
-//			criarBanco(banco, comando[2].palavra);
-//	}
-//}
-
 
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 {
@@ -661,29 +585,6 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 		comandoAtual = del(&*descLista);
 	}
 }
-//{
-//	Lista *aux = descLista->inicio;
-//	while(aux != NULL)
-//	{
-//		if(aux->comando[0].tipo == TOK_COMANDO)
-//		{
-//			if(!stricmp(aux->comando[0].palavra, "CREATE"))
-//				interpretarCreate(banco, aux->comando);
-//			/*else if(!stricmp(aux->comando[0].palavra, "INSERT"))
-//				interpretarInsert(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
-//				interpretarSelect(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
-//				interpretarUpdate(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "DELETE"))
-//				interpretarDelete(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "ALTER"))
-//				interpretarAlter(*banco, aux->comando);*/
-//			
-//		}
-//		aux = aux->prox;
-//	}
-//}
 
 void imprimirBanco(TpBanco *banco)
 {
