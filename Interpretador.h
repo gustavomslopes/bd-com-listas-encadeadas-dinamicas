@@ -64,11 +64,11 @@ void toStringFormatada(char scriptString[], char stringFormatada[])
 	caractere = scriptString[i++];
 	while(caractere!= '\0')
 	{
-		if(caractere == '\n' || caractere == ' ')
+		if(caractere == '\n' || caractere == ' ' || caractere == '\t')
 		{
 			stringFormatada[TL++] = ' ';
 
-			while(caractere == ' ' || caractere == '\n')
+			while(caractere == ' ' || caractere == '\n' || caractere == '\t')
 					caractere = scriptString[i++];
 			if(caractere != '\0')
 					stringFormatada[TL++] = caractere;

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <conio2.h>
+#include <conio.h>
 #include <string.h>
 
 #include "TADBD.h"
