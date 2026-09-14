@@ -1,50 +1,49 @@
 #define TOK_CREATE 0
 #define TOK_ALTER 1
-#define TOK_DROP 2
-#define TOK_TABLE 3
-#define TOK_DATABASE 4
-#define TOK_INSERT 5
-#define TOK_UPDATE 6
-#define TOK_DELETE 7
-#define TOK_SELECT 8
+#define TOK_TABLE 2
+#define TOK_DATABASE 3
+#define TOK_INSERT 4
+#define TOK_UPDATE 5
+#define TOK_DELETE 6
+#define TOK_SELECT 7
 
-#define TOK_CONSTRAINT 9
-#define TOK_PRIMARY 10
-#define TOK_FOREIGN 11
-#define TOK_KEY 12
-#define TOK_INTO 13
-#define TOK_VALUES 14
-#define TOK_SET 15
-#define TOK_FROM 16
-#define TOK_WHERE 17
-#define TOK_ORDER 18
-#define TOK_BY 19
-#define TOK_GROUP 20
-#define TOK_HAVING 21
-#define TOK_DISTINCT 22
-#define TOK_AS 23
-#define TOK_LIMIT 24
-#define TOK_ADD 25
-#define TOK_COLUMN 26
-#define TOK_RENAME 27
-#define TOK_MODIFY 28
+#define TOK_CONSTRAINT 8
+#define TOK_PRIMARY 9
+#define TOK_FOREIGN 10
+#define TOK_KEY 11
+#define TOK_INTO 12
+#define TOK_VALUES 13
+#define TOK_SET 14
+#define TOK_FROM 15
+#define TOK_WHERE 16
+#define TOK_ORDER 17
+#define TOK_BY 18
+#define TOK_GROUP 19
+#define TOK_HAVING 20
+#define TOK_DISTINCT 21
+#define TOK_AS 22
+#define TOK_LIMIT 23
+#define TOK_ADD 24
+#define TOK_COLUMN 25
+#define TOK_RENAME 26
+#define TOK_MODIFY 27
 
-#define TOK_TIPO_DADO 29
+#define TOK_TIPO_DADO 28
 
-#define TOK_AND 30
-#define TOK_OR 31
-#define TOK_NOT 32
+#define TOK_AND 29
+#define TOK_OR 30
+#define TOK_NOT 31
 
-#define TOK_ABRE_PARENTESE 33
-#define TOK_FECHA_PARENTESE 34
-#define TOK_VIRGULA 35
-#define TOK_PONTO_VIRGULA 36
+#define TOK_ABRE_PARENTESE 32
+#define TOK_FECHA_PARENTESE 33
+#define TOK_VIRGULA 34
+#define TOK_PONTO_VIRGULA 35
 
-#define TOK_IDENTIFICADOR 37
-#define TOK_NUMERO 38
-#define TOK_STRING 39
+#define TOK_IDENTIFICADOR 36
+#define TOK_NUMERO 37
+#define TOK_STRING 38
 
-#define TOTAL_TOK 39
+#define TOTAL_TOK 38
 
 void toString(FILE *arq, char stringFormatada[])
 {
@@ -99,7 +98,7 @@ int tokenizarPalavra(Token tabelaTokens[], char palavra[])
 	int i;
 	for(i=0; i<TOTAL_TOK; i++)
 	{
-		if(!stricmp(palavra, tabelaTokens[i].palavra))
+		if(stricmp(palavra, tabelaTokens[i].palavra)==0)
 			return tabelaTokens[i].tipo;
 	}
 	return -1;
@@ -116,7 +115,6 @@ char isNumber(char palavra[])
 			return 0;
 		i++;
 	}
-
 	return 1;
 }
 
@@ -126,7 +124,6 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 	{
 		{"CREATE", TOK_CREATE}, 
 		{"ALTER", TOK_ALTER}, 
-		{"DROP", TOK_DROP},
 		{"TABLE", TOK_TABLE}, 
 		{"DATABASE", TOK_DATABASE},
 		{"INSERT", TOK_INSERT}, 
@@ -198,7 +195,7 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 					else
 					{
 						token = TOK_STRING;
-						if(TLS>0 && (tokens[TLS-1].tipo>=0 && tokens[TLS-1].tipo<=8)) token = TOK_IDENTIFICADOR;
+						if(TLS>0 && (tokens[TLS-1].tipo>=0 && tokens[TLS-1].tipo<=7)) token = TOK_IDENTIFICADOR;
 					}
 				}
 				if(token != -1)
@@ -353,14 +350,20 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 	else
 		return erro("Tipo de dado nao reconhecido");
 
-	criarCampo(&(tabelaAtual->pCampos), nomeCampo, tipo, 'N');
-
-	(*i)++;
-	if(comando[*i].tipo == TOK_VIRGULA)
+	if(criarCampo(&(tabelaAtual->pCampos), nomeCampo, tipo))
+	{
 		(*i)++;
-	else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
-		return erro("Falta )");
-
+		if(comando[*i].tipo == TOK_VIRGULA)
+			(*i)++;
+		else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
+		{
+		//	apagarCampo(&(tabelaAtual->pCampos));
+			return erro("Falta )");
+		}
+	}
+	else
+		return erro("Campos com o mesmo nome!");
+		
 	return 1;
 }
 

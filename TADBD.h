@@ -127,7 +127,7 @@ void caixaCampo(TpCampo **campo, char nome[],char tipo)
 	(*campo)->pAtual=NULL;
 }
 
-char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
+char criarCampo(TpCampo **pCampos, char nome[], char tipo)
 {
 	TpCampo *novoCampo;
 	caixaCampo(&novoCampo, nome, tipo);
@@ -139,7 +139,7 @@ char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
 	TpCampo *aux = *pCampos;
 	while(aux->prox!=NULL && strcmp(aux->nome,nome)!=0)
 		aux = aux->prox;
-	if(!strcmp(aux->nome,nome)==0)
+	if(strcmp(aux->nome,nome)!=0)
 	{
 		aux->prox = novoCampo;
 		
@@ -148,6 +148,15 @@ char criarCampo(TpCampo **pCampos, char nome[], char tipo, char isNULL)
 	free(novoCampo);
 	return 0;
 }
+
+//void apagarCampo(TpCampo **pCampos)
+//{
+//	TpCampo *aux = *pCampos;
+//	while(aux->prox->prox!=NULL)
+//		aux = aux->prox;
+//	free(aux->prox);
+//	aux->prox = NULL;
+//}
 
 union dado converterValor(char tipo, char *texto)
 {

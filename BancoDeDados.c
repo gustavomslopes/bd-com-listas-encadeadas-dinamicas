@@ -8,15 +8,106 @@
 #include "TADLISTA.h"
 #include "Interpretador.h"
 
+int larguraTabela(TpCampo *campo)
+{
+	int largura = 0;
+	while(campo!=NULL)
+	{
+		largura+=strlen(campo->nome)+4;
+		campo = campo->prox;
+	}
+	return largura-1;
+}
+
+void exibirLinha(TpTabela *tabela)
+{
+	int i;
+	TpCampo *campo = tabela->pCampos;
+	printf("\n+");
+	while(campo!=NULL)
+	{
+		for(i=0; i<strlen(campo->nome);i++)
+			printf("-");
+		printf("---+");
+		campo = campo->prox;
+	}
+}
+
+void printarDado(union dado *no, TpCampo *campo)
+{
+	if(no == NULL)
+	{
+		printf(" ");
+	}
+	else
+	{
+		switch(campo->tipo)
+		{
+			case 'I': printf("%d", no->integer.valorI); break;
+			case 'N': printf("%.2f", no->numeric.valorN); break;
+			case 'D': printf("%s", no->date.valorD); break;
+			case 'C': printf("%c", no->character1.valorC); break;
+			case 'T': printf("%s", no->character20.valorT); break;
+		}
+	}
+	
+}
+
+void imprimirTabelaGrade(TpTabela *tabela)
+{
+	union dado *dado;
+	TpCampo *campo, *campoAtual;
+	printf("TABELA: %s", tabela->nome);
+	exibirLinha(tabela);
+	printf("\n|");
+	campo = tabela->pCampos;
+	while(campo!=NULL)
+	{
+		printf("%s   |", campo->nome);
+		campo = campo->prox;
+	}
+	exibirLinha(tabela);
+	dado = tabela->pCampos->pAtual;
+	campoAtual = tabela->pCampos;
+	while(dado!=NULL)
+	{
+		printarDado(dado, campoAtual);
+	}
+	
+	printf("\n\n");
+}
+
+void imprimirBancoGrade(TpBanco *banco)
+{
+	TpTabela *tabela;
+
+	if(banco == NULL)
+		printf("Nenhum banco de dados criado.\n");
+	else
+	{
+		printf("=== BANCO: %s ===\n", banco->nome);
+
+		tabela = banco->pTabelas;
+		if(tabela == NULL)
+			printf("(nenhuma tabela criada)\n");
+	
+		while(tabela != NULL)
+		{
+			imprimirTabelaGrade(tabela);
+			tabela = tabela->prox;
+		}
+	}
+}
+
 int main()
 {
+	
 	char nomeArq[30], scriptString [100000], stringFormatada[100000];
 	Token tokens[1000]; 
 	int TL;
 	DescritorLista descLista;
 	TpBanco *banco = NULL; 
 	init(&descLista); 
-
 	printf("### BANCO DE DADOS ###\n\n");
 //	printf("Deseja importar um arquivo [S/N]? ");
 //	if(toupper(getche()) == 'S')
@@ -46,6 +137,7 @@ int main()
 	interpretarComandos(&banco, &descLista);
 	printf("\n\n");
 	imprimirBanco(banco);
+	imprimirBancoGrade(banco);
 	
 	
 	return 0;
