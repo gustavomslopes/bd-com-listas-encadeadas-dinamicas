@@ -639,6 +639,139 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 //}
 
 
+
+char interpretarAlter(TpBanco **banco, Token comando[])
+{
+	int i=1;
+	TpCampo *campoFK,*campoFK2;
+	TpTabela *tabelaFK,*tabelaFK2;
+	char aux[20],aux2[20];
+	if(comando[i].tipo == TOK_TABLE)
+	{
+		if(*banco != NULL)
+		{
+			i++;
+			if(comando[i].tipo == TOK_IDENTIFICADOR)
+			{
+				tabelaFK = (*banco)->pTabelas;
+				while(tabelaFK!=NULL && stricmp(comando[i].palavra,tabelaFK->nome)!=0)
+					tabelaFK=tabelaFK->prox;
+				if(tabelaFK!=NULL)
+				{
+					i++;
+					if(comando[i].tipo == TOK_ADD)
+					{
+						i++;
+						if(comando[i].tipo == TOK_CONSTRAINT)
+						{
+							i++;
+							if(comando[i].tipo == TOK_STRING)
+							{
+								strcpy(aux,comando[i].palavra);
+								i++;
+								if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
+								{
+									i+=2;
+									if(comando[i].tipo == TOK_ABRE_PARENTESE)
+									{
+										i++;
+										if(comando[i].tipo == TOK_STRING)
+										{
+											strcpy(aux2,comando[i].palavra);
+											campoFK = tabelaFK->pCampos;
+											while(campoFK!=NULL && stricmp(campoFK->nome,aux2)!=0)
+												campoFK=campoFK->prox;
+											if(campoFK!=NULL)
+											{
+												if(campoFK->FK==NULL)
+												{
+													i++;
+													if(comando[i].tipo == TOK_FECHA_PARENTESE)
+													{
+														i++;
+														if(stricmp(comando[i].palavra,"REFERENCES")==0)
+														{
+															i++;
+															if(comando[i].tipo == TOK_STRING)
+															{
+																tabelaFK2 = (*banco)->pTabelas;
+																while(tabelaFK2!=NULL && stricmp(comando[i].palavra,tabelaFK2->nome)!=0)
+																	tabelaFK2=tabelaFK2->prox;
+																if(tabelaFK2!=NULL)
+																{
+																	i++;
+																	if(comando[i].tipo == TOK_ABRE_PARENTESE)
+																	{
+																		i++;
+																		campoFK2 = tabelaFK2->pCampos;
+																		while(campoFK2!=NULL && stricmp(campoFK2->nome,comando[i].palavra)!=0)
+																			campoFK2=campoFK2->prox;
+																		if(campoFK2!=NULL)
+																		{
+																			campoFK->FK = campoFK2;
+																			i++;
+																			if(comando[i].tipo == TOK_FECHA_PARENTESE)
+																				i++;
+																			if(comando[i].tipo == TOK_PONTO_VIRGULA)
+																				return 1;
+																			else
+																				return erro("Falta ;");
+																		}
+																		else
+																			return erro("Campo referenciado nao encontrado");
+																	}
+																	else
+																		return erro("Falta ( apos nome da tabela referenciada");
+																}
+																else
+																	return erro("Tabela referenciada nao encontrada");
+															}
+															else
+																return erro("Nome da tabela referenciada ausente");
+														}
+														else
+															return erro("Esperado REFERENCES");
+													}
+													else
+														return erro("Falta ) apos campo FK");
+												}
+												else
+													return erro("Campo ja e chave estrangeira");
+											}
+											else
+												return erro("Campo referenciado nao encontrado");	
+										}
+										else
+											return erro("Nome do campo ausente");
+									}
+									else
+										return erro("Falta ( apos FOREIGN KEY");
+								}
+								else
+									return erro("Esperado FOREIGN KEY");
+							}
+							else
+								return erro("Nome da constraint ausente");
+						}
+						else
+							return erro("Esperado CONSTRAINT");
+					}
+					else
+						return erro("Esperado ADD");
+				}
+				else
+					return erro("Tabela nao encontrada");
+			}
+			else
+				return erro("Nome da tabela ausente!");
+		}
+		else
+			return erro("Banco nao criado!");
+	}
+	else
+		return erro("Comando alter nao reconhecido!");
+}
+
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 {
 	Lista *comandoAtual = del(&*descLista);
@@ -654,9 +787,9 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 //			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
 //				interpretarUpdate(*banco, aux->comando);
 //			else if(!stricmp(aux->comando[0].palavra, "DELETE"))
-//				interpretarDelete(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "ALTER"))
-//				interpretarAlter(*banco, aux->comando);*/
+//				interpretarDelete(*banco, aux->comando);*/
+			else if(comandoAtual->comando[0].tipo == TOK_ALTER)
+				certo = interpretarAlter(&*banco, comandoAtual->comando);
 		free(comandoAtual);
 		comandoAtual = del(&*descLista);
 	}

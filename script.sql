@@ -18,10 +18,15 @@ CREATE TABLE veiculo (
 
 CREATE TABLE aluguel ( 
     id_aluguel INTEGER, 
-    cliente INTEGER , 
-    veiculo INTEGER , 
+    id_cliente INTEGER , 
+    id_veiculo INTEGER , 
     dt_saida DATE , 
     dt_retorno DATE,
-    CONSTRAINT FK_aluguel_cliente FOREIGN KEY (cliente) REFERENCES cliente (id_cliente),
-    CONSTRAINT FK_aluguel_cliente FOREIGN KEY (veiculo) REFERENCES veiculo (id_veiculo)
 );
+
+ 
+ALTER TABLE aluguel ADD CONSTRAINT cliente_aluguel  
+    FOREIGN KEY (id_cliente) REFERENCES cliente (id_cliente); 
+ 
+ALTER TABLE aluguel ADD CONSTRAINT veiculo_aluguel  
+    FOREIGN KEY (id_veiculo) REFERENCES veiculo (id_veiculo); 
