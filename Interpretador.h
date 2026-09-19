@@ -382,15 +382,59 @@ char criarPK(TpTabela *tabelaAtual, Token comando[], int *i)
 	return 1;
 }
 
-TpCampo *buscarCampoPK(TpTabela *tabelaAtual, Token comando[],int  *i)
+TpCampo *buscarCampo(TpTabela *tabelaAtual, Token comando[],int  i)
 {
-	TpCampo *campoFK;
-	(*i)++;
-	campoFK = tabelaAtual->pCampos;	
-	while(campoFK != NULL && stricmp(campoFK->nome, comando[*i].palavra) != 0)
-		campoFK = campoFK->prox;
-	if(campoFK!=NULL)
-		return campoFK;
+	TpCampo *campo;
+	campo = tabelaAtual->pCampos;	
+	while(campo != NULL && stricmp(campo->nome, comando[i].palavra) != 0)
+		campo = campo->prox;
+	if(campo!=NULL)
+		return campo;
+	return NULL;
+}
+
+TpTabela *buscarTabela(TpBanco *banco, Token comando[],int  i)
+{
+	TpTabela *tabela;
+	tabela = banco->pTabelas;	
+	while(tabela != NULL && stricmp(tabela->nome, comando[i].palavra) != 0)
+		tabela = tabela->prox;
+	if(tabela!=NULL)
+		return tabela;
+	return NULL;
+}
+
+TpDado* buscarDado(TpCampo *campo, union dados valor)
+{
+	TpDado *dado = campo->pDados;
+
+	while(dado != NULL)
+	{
+		switch(campo->tipo)
+		{
+			case 'I':
+				if(dado->valor.integer == valor.integer)
+					return dado;
+				break;
+			case 'N':
+				if(dado->valor.numeric == valor.numeric)
+					return dado;
+				break;
+			case 'D':
+				if(strcmp(dado->valor.date, valor.date) == 0)
+					return dado;
+				break;
+			case 'C':
+				if(dado->valor.character1 == valor.character1)
+					return dado;
+				break;
+			case 'T':
+				if(strcmp(dado->valor.character20, valor.character20) == 0)
+					return dado;
+				break;
+		}
+		dado = dado->prox;
+	}
 	return NULL;
 }
 
@@ -398,55 +442,65 @@ char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i)
 {
 	TpCampo *campoFK, *campoFK2;
 	TpTabela *tabelaFK;
-	campoFK = buscarCampoPK(tabelaAtual, comando, &*i);
-	if(campoFK != NULL)
+	(*i)++;
+	if(comando[*i].tipo == TOK_STRING)
 	{
-		(*i)++; 
-		if(comando[*i].tipo == TOK_FECHA_PARENTESE)
+		campoFK = buscarCampo(tabelaAtual, comando, *i);
+		if(campoFK != NULL)
 		{
-			(*i)++; 
-			if(comando[*i].tipo == TOK_STRING && stricmp(comando[*i].palavra,"REFERENCES")==0)
+			if(campoFK->FK==NULL)
 			{
 				(*i)++; 
-				tabelaFK = (*banco)->pTabelas;
-				while(tabelaFK != NULL && stricmp(tabelaFK->nome,comando[*i].palavra)!=0)
-					tabelaFK = tabelaFK->prox;
-
-				if(tabelaFK != NULL)
+				if(comando[*i].tipo == TOK_FECHA_PARENTESE)
 				{
 					(*i)++; 
-					if(comando[*i].tipo == TOK_ABRE_PARENTESE)
+					if(comando[*i].tipo == TOK_STRING && stricmp(comando[*i].palavra,"REFERENCES")==0)
 					{
-						campoFK2 = buscarCampoPK(tabelaFK, comando, &*i);
-						if(campoFK2 != NULL)
+						(*i)++; 
+						if(comando[*i].tipo == TOK_STRING)
 						{
-							campoFK->FK = campoFK2;
-							(*i)++;
+							tabelaFK = buscarTabela(*banco, comando, *i);
+							if(tabelaFK != NULL)
+							{
+								(*i)++; 
+								if(comando[*i].tipo == TOK_ABRE_PARENTESE)
+								{
+									(*i)++;
+									campoFK2 = buscarCampo(tabelaFK, comando, *i);
+									if(campoFK2 != NULL)
+									{
+										campoFK->FK = campoFK2;
+										(*i)++;
+									}
+									else
+										return erro("Campo referenciado nao encontrado");
+								}
+								else
+									return erro("Falta ( apos nome da tabela referenciada");
+							}
+							else
+								return erro("Tabela referenciada nao encontrada");
 						}
-						else
-							return erro("Campo referenciado nao encontrado");
+						
 					}
 					else
-						return erro("Falta ( apos nome da tabela referenciada");
+						return erro("Esperado REFERENCES");
 				}
 				else
-					return erro("Tabela referenciada nao encontrada");
+					return erro("Falta ) apos campo FK");
 			}
-			else
-				return erro("Esperado REFERENCES");
 		}
 		else
-			return erro("Falta ) apos campo FK");
+			return erro("Campo FK nao encontrado na tabela atual");		
 	}
 	else
-		return erro("Campo FK nao encontrado na tabela atual");
+		return erro("Nome do campo ausente");
+
 	if(comando[*i].tipo == TOK_FECHA_PARENTESE)
 	{
 		(*i)++;
 		if(comando[*i].tipo == TOK_VIRGULA)
 			(*i)++;
-		else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
-			return erro("Falta )");
 	}
 	else 
 		return erro("Falta )");
@@ -518,7 +572,7 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 									else if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
 									{
 										i+=2;
-										if(comando[i].tipo == TOK_ABRE_PARENTESE && comando[i+1].tipo == TOK_STRING)
+										if(comando[i].tipo == TOK_ABRE_PARENTESE)
 										{
 											if(!criarFK(tabelaAtual, comando, &*banco, &i))
 												return erro("Falha ao criar FK");
@@ -572,7 +626,6 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 	int i=1;
 	TpCampo *campoFK,*campoFK2;
 	TpTabela *tabelaFK,*tabelaFK2;
-	char aux[20],aux2[20];
 	if(comando[i].tipo == TOK_TABLE)
 	{
 		if(*banco != NULL)
@@ -580,9 +633,7 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 			i++;
 			if(comando[i].tipo == TOK_IDENTIFICADOR)
 			{
-				tabelaFK = (*banco)->pTabelas;
-				while(tabelaFK!=NULL && stricmp(comando[i].palavra,tabelaFK->nome)!=0)
-					tabelaFK=tabelaFK->prox;
+				tabelaFK = buscarTabela(*banco, comando, i);
 				if(tabelaFK!=NULL)
 				{
 					i++;
@@ -594,82 +645,23 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 							i++;
 							if(comando[i].tipo == TOK_STRING)
 							{
-								strcpy(aux,comando[i].palavra);
 								i++;
 								if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
 								{
 									i+=2;
 									if(comando[i].tipo == TOK_ABRE_PARENTESE)
 									{
-										i++;
-										if(comando[i].tipo == TOK_STRING)
-										{
-											strcpy(aux2,comando[i].palavra);
-											campoFK = tabelaFK->pCampos;
-											while(campoFK!=NULL && stricmp(campoFK->nome,aux2)!=0)
-												campoFK=campoFK->prox;
-											if(campoFK!=NULL)
-											{
-												if(campoFK->FK==NULL)
-												{
-													i++;
-													if(comando[i].tipo == TOK_FECHA_PARENTESE)
-													{
-														i++;
-														if(stricmp(comando[i].palavra,"REFERENCES")==0)
-														{
-															i++;
-															if(comando[i].tipo == TOK_STRING)
-															{
-																tabelaFK2 = (*banco)->pTabelas;
-																while(tabelaFK2!=NULL && stricmp(comando[i].palavra,tabelaFK2->nome)!=0)
-																	tabelaFK2=tabelaFK2->prox;
-																if(tabelaFK2!=NULL)
-																{
-																	i++;
-																	if(comando[i].tipo == TOK_ABRE_PARENTESE)
-																	{
-																		i++;
-																		campoFK2 = tabelaFK2->pCampos;
-																		while(campoFK2!=NULL && stricmp(campoFK2->nome,comando[i].palavra)!=0)
-																			campoFK2=campoFK2->prox;
-																		if(campoFK2!=NULL)
-																		{
-																			campoFK->FK = campoFK2;
-																			i++;
-																			if(comando[i].tipo == TOK_FECHA_PARENTESE)
-																				i++;
-																			if(comando[i].tipo == TOK_PONTO_VIRGULA)
-																				return 1;
-																			else
-																				return erro("Falta ;");
-																		}
-																		else
-																			return erro("Campo referenciado nao encontrado");
-																	}
-																	else
-																		return erro("Falta ( apos nome da tabela referenciada");
-																}
-																else
-																	return erro("Tabela referenciada nao encontrada");
-															}
-															else
-																return erro("Nome da tabela referenciada ausente");
-														}
-														else
-															return erro("Esperado REFERENCES");
-													}
-													else
-														return erro("Falta ) apos campo FK");
-												}
-												else
-													return erro("Campo ja e chave estrangeira");
-											}
-											else
-												return erro("Campo referenciado nao encontrado");	
-										}
+										if(!criarFK(tabelaFK, comando, &*banco, &i))
+											return erro("Falha ao criar FK");
+										if(comando[i].tipo == TOK_FECHA_PARENTESE)
+											i++;
 										else
-											return erro("Nome do campo ausente");
+										{
+											if(comando[i].tipo == TOK_PONTO_VIRGULA)
+												return 1;
+											else
+												return erro("Falta ;");
+										}
 									}
 									else
 										return erro("Falta ( apos FOREIGN KEY");
@@ -699,6 +691,193 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 		return erro("Comando alter nao reconhecido!");
 }
 
+char isChar1(char palavra[])
+{
+	if(strlen(palavra) == 1)
+		return 1;
+	return 0;
+}
+
+char isDate(char palavra[])
+{
+	int i=0;
+	if(strlen(palavra)==10)
+	{
+		while(palavra[i]!='\0')
+		{
+			if(i==4 || i==7)
+				if(palavra[i] != '-')
+					return 0;
+			else
+				if(!isdigit(palavra[i]))
+					return 0;
+			i++;
+		}
+		return 1;
+	}
+	return 0;
+	
+}
+
+char isChar20(char palavra[])
+{
+	if(strlen(palavra) <= 20 && !isDate(palavra))
+		return 1;
+	return 0;
+}
+
+char isInt(char palavra[])
+{
+	if(isNumber(palavra))
+	{
+		if(palavra[strlen(palavra)-3] != '.' && palavra[strlen(palavra)-2] != '.')
+			return 1;
+	}	
+	return 0;
+}
+
+char isFloat(char palavra[])
+{
+	if(isNumber(palavra))
+	{
+		if(palavra[strlen(palavra)-3] == '.' || palavra[strlen(palavra)-2] == '.')
+			return 1;
+	}	
+	return 0;
+}
+
+void tirarApostrofo(char palavra[])
+{
+	int i;
+	for(i=0; i<strlen(palavra)-1; i++)
+		palavra[i] = palavra[i+1];
+	palavra[i-1] = '\0';
+}
+
+char interpretarInsert(TpBanco **banco, Token comando[])
+{
+	int i=1, pos=0;
+	TpCampo *campos[15];
+	TpTabela *tabela;
+	union dados valor;
+	char tipo;
+	if(comando[i].tipo == TOK_INTO)
+	{
+		i++;
+		if(comando[i].tipo == TOK_STRING)
+		{
+			tabela = buscarTabela(*banco, comando, i);
+			if(tabela!=NULL)
+			{
+				i++;
+				if(comando[i].tipo == TOK_ABRE_PARENTESE)
+				{
+					i++;
+					if(comando[i].tipo == TOK_FECHA_PARENTESE)
+						return erro("Sem colunas");
+					while(comando[i].tipo != TOK_FECHA_PARENTESE)
+					{
+						if(comando[i].tipo == TOK_STRING)
+						{
+							campos[pos] = buscarCampo(tabela, comando, i);
+							if(campos[pos]==NULL)
+								return erro("campo nao encontrado!");
+							
+							pos++;
+							i++;
+							if(comando[i].tipo == TOK_VIRGULA)
+								i++;
+							else if(comando[i].tipo != TOK_FECHA_PARENTESE)
+								return erro("Falta )");
+						}
+						else
+							return erro("Esperado nome de coluna!");
+					}
+					i++;
+					if(comando[i].tipo == TOK_VALUES)
+					{
+						i++;						
+						if(comando[i].tipo ==TOK_ABRE_PARENTESE)
+						{
+							i++;
+							if(comando[i].tipo == TOK_FECHA_PARENTESE)
+								return erro("Sem valores");
+							pos=0;
+							while(comando[i].tipo != TOK_FECHA_PARENTESE)
+							{
+								if(comando[i].tipo == TOK_STRING || comando[i].tipo == TOK_NUMERO)
+								{
+									tipo = ' ';
+									if(comando[i].palavra[0]=='\'' && comando[i].palavra[strlen(comando[i].palavra)-1] == '\'' )
+									{
+										tirarApostrofo(comando[i].palavra);
+										if(isChar1(comando[i].palavra))
+										{
+											valor.character1 = comando[i].palavra[0];
+											tipo = 'C';
+										}
+										else if(isChar20(comando[i].palavra))
+										{
+											strcpy(valor.character20, comando[i].palavra);
+											tipo = 'T';
+										}
+										else if(isDate(comando[i].palavra))
+										{
+											strcpy(valor.date, comando[i].palavra);
+											tipo = 'D';
+										}
+										else
+											return erro("Tipo de dado nao reconhecido");
+									}
+									else
+									{
+										if(isInt(comando[i].palavra))
+										{
+											valor.integer = atoi(comando[i].palavra);
+											tipo = 'I';
+										}
+										else if(isFloat(comando[i].palavra))
+										{
+											valor.numeric = atof(comando[i].palavra);
+											tipo = 'N';
+										}
+									}
+									if(tipo == campos[pos]->tipo)
+									{
+										if(campos[pos]->PK == 'S' && buscarDado(campos[pos], valor))
+											return erro("Dado repetido na PK");
+										criarDado(tabela->pCampos, campos[pos]->nome, valor);
+									}
+									else
+										return erro("Tipo de dado incompativel");
+									pos++;
+									i++;
+									if(comando[i].tipo == TOK_VIRGULA)
+										i++;
+								}
+								else
+									return erro("Esperado valor!");
+							}
+						}
+						else
+							return erro("Falta (");
+					}
+					else
+						return erro("Esperado VALUES");
+				}
+				else
+					return erro("Falta (");
+			}
+			else
+				return erro("Tabela nao encontrada!");
+		}
+		else
+			return erro("Falta nome da tabela");
+	}
+	else
+		return erro("Esperado INTO");
+}
+
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 {
 	Lista *comandoAtual = del(&*descLista);
@@ -707,8 +886,8 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 	{
 		if(comandoAtual->comando[0].tipo == TOK_CREATE)
 			certo = interpretarCreate(&*banco, comandoAtual->comando);
-//			/*else if(!stricmp(aux->comando[0].palavra, "INSERT"))
-//				interpretarInsert(*banco, aux->comando);
+			else if(comandoAtual->comando[0].tipo == TOK_INSERT)
+				interpretarInsert(&*banco, comandoAtual->comando);
 //			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
 //				interpretarSelect(*banco, aux->comando);
 //			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
@@ -726,6 +905,7 @@ void imprimirBanco(TpBanco *banco)
 {
 	TpTabela *tabela;
 	TpCampo *campo;
+	char tipo;
 	if(banco == NULL)
 		printf("Nenhum banco de dados criado.\n");
 	else
@@ -750,6 +930,30 @@ void imprimirBanco(TpBanco *banco)
 					printf("    CAMPO: %s (tipo: %c,PK: %c)\n", campo->nome, campo->tipo,campo->PK);
 				else
 					printf("    CAMPO: %s (tipo: %c,PK: %c,FK: %s)\n", campo->nome, campo->tipo,campo->PK,campo->FK->nome);
+				tipo = campo->tipo;
+				campo->pAtual = campo->pDados;
+				while(campo->pAtual!=NULL)
+				{
+					switch(tipo)
+					{
+						case 'I':
+							printf("    %d\n", campo->pAtual->valor.integer);
+							break;
+						case 'N':
+							printf("    %.2f\n", campo->pAtual->valor.numeric);
+							break;
+						case 'D':
+							printf("    %s\n", campo->pAtual->valor.date);
+							break;
+						case 'C':
+							printf("    %c\n", campo->pAtual->valor.character1);
+							break;
+						case 'T':
+							printf("    %s\n", campo->pAtual->valor.character20);
+							break;
+					}
+					campo->pAtual = campo->pAtual->prox;
+				}
 				campo = campo->prox;
 			}
 	

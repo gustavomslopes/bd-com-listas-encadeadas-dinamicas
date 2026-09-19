@@ -33,7 +33,7 @@ void exibirLinha(TpTabela *tabela)
 	}
 }
 
-void printarDado(union dado *no, TpCampo *campo)
+void printarDado(TpDado *no, TpCampo *campo)
 {
 	if(no == NULL)
 	{
@@ -43,11 +43,11 @@ void printarDado(union dado *no, TpCampo *campo)
 	{
 		switch(campo->tipo)
 		{
-			case 'I': printf("%d", no->integer.valorI); break;
-			case 'N': printf("%.2f", no->numeric.valorN); break;
-			case 'D': printf("%s", no->date.valorD); break;
-			case 'C': printf("%c", no->character1.valorC); break;
-			case 'T': printf("%s", no->character20.valorT); break;
+			case 'I': printf("%d", no->valor.integer); break;
+			case 'N': printf("%.2f", no->valor.numeric); break;
+			case 'D': printf("%s", no->valor.date); break;
+			case 'C': printf("%c", no->valor.character1); break;
+			case 'T': printf("%s", no->valor.character20); break;
 		}
 	}
 	
@@ -55,7 +55,7 @@ void printarDado(union dado *no, TpCampo *campo)
 
 void imprimirTabelaGrade(TpTabela *tabela)
 {
-	union dado *dado;
+	TpDado *dado;
 	TpCampo *campo, *campoAtual;
 	printf("TABELA: %s", tabela->nome);
 	exibirLinha(tabela);
@@ -115,7 +115,7 @@ int main()
 //		printf("\nNome do arquivo sql: ");
 ////		//Verificar se arquivo SQL
 //		gets(nomeArq);
-		FILE *ptr = fopen("script2.sql", "r");
+		FILE *ptr = fopen("script.sql", "r");
 		if(ptr != NULL)
 		{
 			toString(ptr, scriptString);

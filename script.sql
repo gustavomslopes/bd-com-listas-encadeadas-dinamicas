@@ -83,3 +83,9 @@ CREATE TABLE os_peca (
     CONSTRAINT fk_ospeca_peca FOREIGN KEY (id_peca)
     REFERENCES peca (id_peca)
 );
+
+INSERT INTO cliente(id_cliente, nome) VALUES (1, 'teste');
+
+INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa) VALUES (1, 'porsche', '911', 'eu', 'FZR');
+
+INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa) VALUES (2, 'porsche', '911', 'eu', 'FZR');
