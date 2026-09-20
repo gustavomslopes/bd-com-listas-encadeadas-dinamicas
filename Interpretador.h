@@ -218,8 +218,8 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 	
 	*TLToken = TLS;
 
-	for(i=0 ;i<TLS;i++)
-		printf("%d:%s ", tokens[i].tipo, tokens[i].palavra);
+	// for(i=0 ;i<TLS;i++)
+	// 	printf("%d:%s ", tokens[i].tipo, tokens[i].palavra);
 }
 
 void separarComandos(DescritorLista *descLista, Token tokens[], int TL)
@@ -242,13 +242,13 @@ void separarComandos(DescritorLista *descLista, Token tokens[], int TL)
 		add(descLista, comando, TLC);
 }
 
-void lerScriptUsuario(char scriptString[])
+char lerScriptUsuario(char scriptString[])
 {
 	char caractere;
 	int TL=0;
 	printf("Digite seu script sql abaixo (& - pular liha):\n");
 	caractere = getch();
-	while(caractere != 13)
+	while(caractere != 13 && caractere != 27)
 	{
 		if (caractere == 0 || caractere == -32)
 			getch();
@@ -276,7 +276,11 @@ void lerScriptUsuario(char scriptString[])
 		}
 		caractere = getch();
 	}
+	
 	scriptString[TL] = '\0';
+	if(caractere == 13)
+		return 1;
+	return 0;
 }
 
 void imprimirComandos(DescritorLista *descLista)
@@ -357,7 +361,6 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 			(*i)++;
 		else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
 		{
-		//	apagarCampo(&(tabelaAtual->pCampos));
 			return erro("Falta )");
 		}
 	}
@@ -700,23 +703,23 @@ char isChar1(char palavra[])
 
 char isDate(char palavra[])
 {
-	int i=0;
-	if(strlen(palavra)==10)
+	int i;
+	if(strlen(palavra) != 10)
+		return 0;
+	for(i = 0; i < 10; i++)
 	{
-		while(palavra[i]!='\0')
+		if(i == 4 || i == 7)
 		{
-			if(i==4 || i==7)
-				if(palavra[i] != '-')
-					return 0;
-			else
-				if(!isdigit(palavra[i]))
-					return 0;
-			i++;
+			if(palavra[i] != '-')
+				return 0;
 		}
-		return 1;
+		else
+		{
+			if(!isdigit(palavra[i]))
+				return 0;
+		}
 	}
-	return 0;
-	
+	return 1;
 }
 
 char isChar20(char palavra[])
@@ -728,23 +731,24 @@ char isChar20(char palavra[])
 
 char isInt(char palavra[])
 {
-	if(isNumber(palavra))
-	{
-		if(palavra[strlen(palavra)-3] != '.' && palavra[strlen(palavra)-2] != '.')
-			return 1;
-	}	
-	return 0;
+	return isNumber(palavra);
 }
 
 char isFloat(char palavra[])
 {
-	if(isNumber(palavra))
+	int i, pontos = 0;
+	if(palavra[0] == '\0')
+		return 0;
+	for(i = 0; palavra[i] != '\0'; i++)
 	{
-		if(palavra[strlen(palavra)-3] == '.' || palavra[strlen(palavra)-2] == '.')
-			return 1;
-	}	
-	return 0;
+		if(palavra[i] == '.')
+			pontos++;
+		else if(!isdigit(palavra[i]))
+			return 0;
+	}
+	return (pontos == 1);
 }
+
 
 void tirarApostrofo(char palavra[])
 {
@@ -846,6 +850,8 @@ char interpretarInsert(TpBanco **banco, Token comando[])
 									{
 										if(campos[pos]->PK == 'S' && buscarDado(campos[pos], valor))
 											return erro("Dado repetido na PK");
+										if(campos[pos]->FK != NULL && !buscarDado(campos[pos]->FK, valor))
+											return erro("Dado nao encontrado na FK");
 										criarDado(tabela->pCampos, campos[pos]->nome, valor);
 									}
 									else

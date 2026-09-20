@@ -99,6 +99,14 @@ void imprimirBancoGrade(TpBanco *banco)
 	}
 }
 
+void processarScript(char scriptString[], char stringFormatada[], Token tokens[], int TL, DescritorLista descLista, TpBanco **banco)
+{
+	toStringFormatada(scriptString, stringFormatada);
+	tokenizarComandos(stringFormatada, tokens, &TL);
+	separarComandos(&descLista, tokens, TL);
+	interpretarComandos(&*banco, &descLista);
+}
+
 int main()
 {
 	
@@ -109,35 +117,51 @@ int main()
 	TpBanco *banco = NULL; 
 	init(&descLista); 
 	printf("### BANCO DE DADOS ###\n\n");
-//	printf("Deseja importar um arquivo [S/N]? ");
-//	if(toupper(getche()) == 'S')
-//	{
-//		printf("\nNome do arquivo sql: ");
-////		//Verificar se arquivo SQL
-//		gets(nomeArq);
-		FILE *ptr = fopen("script.sql", "r");
+	printf("-----------------------\n");
+	printf("[A] Importar um arquivo\n");
+	printf("[B] Escrever script do inicio\n");
+	if(toupper(getche()) == 'A')
+	{
+		printf("\nNome do arquivo sql: ");
+//		//Verificar se arquivo SQL
+		gets(nomeArq);
+		FILE *ptr = fopen(nomeArq, "r");
 		if(ptr != NULL)
 		{
 			toString(ptr, scriptString);
 			fclose(ptr);
-		}
+			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco);
+			imprimirBanco(banco);
+			while(lerScriptUsuario(scriptString))
+			{
+				processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco);
+				imprimirBanco(banco);
+			}
+			
+			}
 		else
 			printf("Falha ao importar o arquivo!\n");
-//	}
-//	else
-//		lerScriptUsuario(scriptString);
+	}
+	else
+	{
+		while(lerScriptUsuario(scriptString))
+		{
+			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco);
+			imprimirBanco(banco);
+		}
+	}
+		
 
-	toStringFormatada(scriptString, stringFormatada);
-	printf("%s", stringFormatada);
-	printf("\n\n");
-	tokenizarComandos(stringFormatada, tokens, &TL);
-	separarComandos(&descLista, tokens, TL);
-	printf("\n\n");
-	imprimirComandos(&descLista);
-	interpretarComandos(&banco, &descLista);
-	printf("\n\n");
-	imprimirBanco(banco);
-	imprimirBancoGrade(banco);
+	
+	// printf("%s", stringFormatada);
+	// printf("\n\n");
+	
+	// printf("\n\n");
+	// imprimirComandos(&descLista);
+	
+	// printf("\n\n");
+	// imprimirBanco(banco);
+	// imprimirBancoGrade(banco);
 	
 	
 	return 0;

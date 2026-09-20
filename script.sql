@@ -89,3 +89,5 @@ INSERT INTO cliente(id_cliente, nome) VALUES (1, 'teste');
 INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa) VALUES (1, 'porsche', '911', 'eu', 'FZR');
 
 INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa) VALUES (2, 'porsche', '911', 'eu', 'FZR');
+
+INSERT INTO aluguel(id_cliente, id_veiculo) VALUES (1, 1);
