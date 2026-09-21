@@ -1004,100 +1004,113 @@ TpCampo *buscarCampoJoin(TpBanco *banco, char palavra[])
 	return campo;
 }
 
-TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabela, Token comando[], int *i, char logErro[])
+TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabelas[], int numTabelas, Token comando[], int *i, char logErro[])
 {
-	TpCondicao *nova, *L = NULL, *aux;
+    TpCondicao *nova, *L = NULL, *aux;
+	int t;
+    (*i)++; 
 
-	(*i)++; 
+    if(comando[*i].tipo != TOK_STRING && comando[*i].tipo != TOK_IDENTIFICADOR)
+    {
+        erro(logErro, "Esperado o nome de campo do WHERE");
+        return NULL;
+    }
 
-	if(comando[*i].tipo != TOK_STRING && comando[*i].tipo != TOK_IDENTIFICADOR)
-	{
-		erro(logErro, "Esperado o nome de campo do WHERE");
-		return NULL;
-	}
+    while(comando[*i].tipo != TOK_PONTO_VIRGULA)
+    {
+        nova = (TpCondicao*)malloc(sizeof(TpCondicao));
+        nova->prox = NULL;
+        nova->campoComparado = NULL; 
+        if(L == NULL)
+            L = nova;
+        else
+        {
+            aux = L;
+            while(aux->prox != NULL)
+                aux = aux->prox;
+            aux->prox = nova;
+        }
+        
+        nova->join = verificaJOIN(comando, *i);
+        
+        // ADAPTAÇÃO: Se não for JOIN (não tem prefixo 'tabela.'), procura em todas as tabelas do FROM
+        if(!nova->join)
+        {
+			t=0;
+            nova->campo = buscarCampo(tabelas[t], comando, *i);
+			while(nova->campo != NULL && t<numTabelas)
+			{
+				t++;
+				nova->campo = buscarCampo(tabelas[t], comando, *i);
+			}
+        }
+        else
+        {
+            // Se for JOIN (tabela.campo), a lógica atual usando o banco já resolve perfeitamente
+            nova->campo = buscarCampoJoin(banco, comando[*i].palavra);
+        }
+        
+        if(nova->campo == NULL)
+        {
+            erro(logErro, "Campo nao encontrado");
+            free(nova);
+            return NULL;
+        }
+        (*i)++;
 
-	while(comando[*i].tipo != TOK_PONTO_VIRGULA)
-	{
-		nova = (TpCondicao*)malloc(sizeof(TpCondicao));
-		nova->prox = NULL;
-		nova->campoComparado = NULL; 
-		if(L == NULL)
-			L = nova;
-		else
-		{
-			aux = L;
-			while(aux->prox != NULL)
-				aux = aux->prox;
-			aux->prox = nova;
-		}
-		nova->join=verificaJOIN(comando, *i);
-		if(!nova->join)
-			nova->campo = buscarCampo(tabela, comando, *i);
-		else
-			nova->campo = buscarCampoJoin(banco, comando[*i].palavra);
-		if(nova->campo == NULL)
-		{
-			erro(logErro, "Campo nao encontrado");
-			free(nova);
-			return NULL;
-		}
-		(*i)++;
+        if(comando[*i].tipo == TOK_IGUAL || comando[*i].tipo == TOK_DIFERENTE || comando[*i].tipo == TOK_MENOR || comando[*i].tipo == TOK_MAIOR || comando[*i].tipo == TOK_MENOR_IGUAL || comando[*i].tipo == TOK_MAIOR_IGUAL)
+        {
+            nova->operador = comando[*i].tipo;
+            (*i)++;
+        
+            if(verificaJOIN(comando, *i))
+            {
+                nova->campoComparado = buscarCampoJoin(banco, comando[*i].palavra);
+                if(nova->campoComparado == NULL)
+                {
+                    erro(logErro, "Campo referenciado no JOIN nao encontrado");
+                    free(nova);
+                    return NULL;
+                }
+            }
+            else
+            {
+                nova->campoComparado = NULL;
+                nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
+            }
+            (*i)++;
+        }
+        else if(comando[*i].tipo == TOK_BETWEEN)
+        {
+            nova->operador = comando[*i].tipo;
+            (*i)++;
+            nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
+            (*i)++;
+            (*i)++;
+            nova->valor2 = converterValor(nova->campo->tipo, comando[*i].palavra);
+            (*i)++;
+        }
+        else
+        {
+            erro(logErro, "Sem operador");
+            free(nova);
+            return NULL;
+        }
 
-		if(comando[*i].tipo == TOK_IGUAL || comando[*i].tipo == TOK_DIFERENTE ||
-		   comando[*i].tipo == TOK_MENOR || comando[*i].tipo == TOK_MAIOR ||
-		   comando[*i].tipo == TOK_MENOR_IGUAL || comando[*i].tipo == TOK_MAIOR_IGUAL)
-		{
-		    nova->operador = comando[*i].tipo;
-		    (*i)++;
-		
-		    if(verificaJOIN(comando, *i))
-		    {
-		        nova->campoComparado = buscarCampoJoin(banco, comando[*i].palavra);
-		        if(nova->campoComparado == NULL)
-		        {
-		            erro(logErro, "Campo referenciado no JOIN nao encontrado");
-		            free(nova);
-		            return NULL;
-		        }
-		    }
-		    else
-		    {
-		        nova->campoComparado = NULL;
-		        nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
-		    }
-		    (*i)++;
-		}
-		else if(comando[*i].tipo == TOK_BETWEEN)
-		{
-			nova->operador = comando[*i].tipo;
-			(*i)++;
-			nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
-			(*i)++;
-			(*i)++;
-			nova->valor2 = converterValor(nova->campo->tipo, comando[*i].palavra);
-			(*i)++;
-		}
-		else
-		{
-			erro(logErro, "Sem operador");
-			free(nova);
-			return NULL;
-		}
-
-		if(comando[*i].tipo == TOK_AND || comando[*i].tipo == TOK_OR)
-		{
-			nova->conector = comando[*i].tipo;
-			(*i)++;
-		}
-		else
-			nova->conector = -1;
-	}
-	
-	if (comando[*i].tipo != TOK_PONTO_VIRGULA){
+        if(comando[*i].tipo == TOK_AND || comando[*i].tipo == TOK_OR)
+        {
+            nova->conector = comando[*i].tipo;
+            (*i)++;
+        }
+        else
+            nova->conector = -1;
+    }
+    
+    if (comando[*i].tipo != TOK_PONTO_VIRGULA){
         erro(logErro, "Falta ;");
         return NULL;
     }
-	return L;
+    return L;
 }
 
 
@@ -1355,7 +1368,7 @@ char interpretarDelete(TpBanco **banco, Token comando[], char logErro[])
 
     if(comando[i].tipo == TOK_WHERE)
     {
-        condicoes = InterpretarWHERE(*banco, tabela, comando, &i, logErro);
+        condicoes = InterpretarWHERE(*banco, &tabela, 1, comando, &i, logErro);
         if(condicoes == NULL)
             return 0;
         imprimirCondicoes(condicoes);
@@ -1511,7 +1524,7 @@ char interpretarUpdate(TpBanco **banco, Token comando[], char logErro[])
 
     if(comando[i].tipo == TOK_WHERE)
     {
-        condicoes = InterpretarWHERE(*banco, tabela, comando, &i, logErro);
+        condicoes = InterpretarWHERE(*banco, &tabela, 1, comando, &i, logErro);
         if(condicoes == NULL)
             return 0;
     }
@@ -1574,6 +1587,69 @@ char interpretarUpdate(TpBanco **banco, Token comando[], char logErro[])
     return 1;
 }
 
+char interpretarSelect(TpBanco **banco, Token comando[], char logErro[])
+{
+	int i=1, pos=0;
+	TpTabela *tabelas[20];
+	TpCondicao *condicoes;
+	if(comando[i].palavra[0] == '*')
+	{
+		i++;
+		if(comando[i].tipo == TOK_FROM)
+		{
+			i++;
+			if(comando[i].tipo == TOK_STRING)
+			{
+				tabelas[pos] = buscarTabela(*banco, comando, i);
+				if(tabelas[pos]!=NULL)
+				{
+					i++;
+					while(comando[i].tipo != TOK_PONTO_VIRGULA)
+					{
+						if(comando[i].tipo == TOK_VIRGULA)
+						{
+							i++;
+							while(comando[i].tipo != TOK_PONTO_VIRGULA && comando[i].tipo != TOK_WHERE)
+							{
+								if(comando[i].tipo == TOK_STRING)
+								{
+									tabelas[++pos] = buscarTabela(*banco, comando, i);
+									if(tabelas[pos] != NULL)
+										i++;
+									else
+										return erro (logErro, "Tabela nao encontrada");
+
+									if(comando[i].tipo == TOK_VIRGULA)
+										i++;
+									else if(comando[i].tipo != TOK_PONTO_VIRGULA && comando[i].tipo != TOK_WHERE)
+										return erro(logErro, "esperado ; ou WHERE");
+								}
+							}
+							if(comando[i].tipo == TOK_WHERE)
+							{
+								condicoes = InterpretarWHERE(*banco, tabelas, pos+1, comando, &i, logErro);
+								while(condicoes!=NULL)
+								{
+									printf("%d, %c, %s", condicoes->operador, condicoes->join, condicoes->campo->nome);
+									condicoes = condicoes->prox;
+								}
+								
+							}
+						}
+							
+						else if(comando[i].tipo == TOK_WHERE)
+						{
+							
+						}
+					}
+				}
+				
+			}
+		}
+	}
+
+}
+
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErro[])
 {
 	Lista *comandoAtual = del(&*descLista);
@@ -1582,16 +1658,16 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErr
 	{
 		if(comandoAtual->comando[0].tipo == TOK_CREATE)
 			certo = interpretarCreate(&*banco, comandoAtual->comando, logErro);
-			else if(comandoAtual->comando[0].tipo == TOK_INSERT)
+		else if(comandoAtual->comando[0].tipo == TOK_INSERT)
 			certo =	interpretarInsert(&*banco, comandoAtual->comando, logErro);
-//			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
-//				interpretarSelect(*banco, aux->comando);
-			else if(comandoAtual->comando[0].tipo == TOK_UPDATE)
-				certo = interpretarUpdate(&*banco, comandoAtual->comando, logErro);
-			else if(comandoAtual->comando[0].tipo == TOK_DELETE)
-				certo = interpretarDelete(&*banco, comandoAtual->comando, logErro);
-			else if(comandoAtual->comando[0].tipo == TOK_ALTER)
-				certo = interpretarAlter(&*banco, comandoAtual->comando, logErro);
+		else if(comandoAtual->comando[0].tipo == TOK_SELECT)
+			certo = interpretarSelect(&*banco, comandoAtual->comando, logErro);
+		else if(comandoAtual->comando[0].tipo == TOK_UPDATE)
+			certo = interpretarUpdate(&*banco, comandoAtual->comando, logErro);
+		else if(comandoAtual->comando[0].tipo == TOK_DELETE)
+			certo = interpretarDelete(&*banco, comandoAtual->comando, logErro);
+		else if(comandoAtual->comando[0].tipo == TOK_ALTER)
+			certo = interpretarAlter(&*banco, comandoAtual->comando, logErro);
 		free(comandoAtual);
 		comandoAtual = del(&*descLista);
 	}

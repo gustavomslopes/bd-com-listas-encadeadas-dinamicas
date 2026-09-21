@@ -133,50 +133,6 @@ char criarCampo(TpCampo **pCampos, char nome[], char tipo)
 	return 0;
 }
 
-//void apagarCampo(TpCampo **pCampos)
-//{
-//	TpCampo *aux = *pCampos;
-//	while(aux->prox->prox!=NULL)
-//		aux = aux->prox;
-//	free(aux->prox);
-//	aux->prox = NULL;
-//}
-
-// union dado converterValor(char tipo, char *texto)
-// {
-//     union dado valor;
-
-//     switch (tipo)
-//     {
-//         case 'I':
-//             valor.integer.valorI = atoi(texto);
-//             valor.integer.prox = NULL;
-//             break;
-
-//         case 'N':
-//             valor.numeric.valorN = atof(texto);
-//             valor.numeric.prox = NULL;
-//             break;
-
-//         case 'D':
-//             strcpy(valor.date.valorD, texto);
-//             valor.date.prox = NULL;
-//             break;
-
-//         case 'C':
-//             valor.character1.valorC = texto[0];
-//             valor.character1.prox = NULL;
-//             break;
-
-//         case 'T':
-//             strcpy(valor.character20.valorT, texto);
-//             valor.character20.prox = NULL;
-//             break;
-//     }
-
-//     return valor;
-// }
-
 char criarDado(TpCampo *pCampos,char nome[], union dados Dado)
 {
 	TpDado *novo;

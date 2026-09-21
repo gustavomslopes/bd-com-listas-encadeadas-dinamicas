@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <conio2.h>
+#include <conio.h>
 #include <string.h>
 
 #include "TADBD.h"
@@ -12,26 +12,26 @@
 
 int larguraTabela(int qtd)
 {
-	return qtd*14;
+	return qtd * 14;
 }
 
 int qtdCampos(TpTabela *tabela)
 {
-	int cont=0;
+	int cont = 0;
 	TpCampo *aux;
 	aux = tabela->pCampos;
-	while(aux!=NULL)
+	while (aux != NULL)
 	{
 		cont++;
-		aux=aux->prox;
+		aux = aux->prox;
 	}
 	return cont;
 }
 
 int qtdDados(TpDado *dado)
 {
-	int cont=0;
-	while(dado!=NULL)
+	int cont = 0;
+	while (dado != NULL)
 	{
 		cont++;
 		dado = dado->prox;
@@ -43,9 +43,9 @@ void exibirLinha(int largura, int sep)
 {
 	int aux = sep;
 	printf("+");
-	while(largura>0)
+	while (largura > 0)
 	{
-		if(aux==0)
+		if (aux == 0)
 		{
 			printf("+");
 			aux = sep;
@@ -64,51 +64,51 @@ int printarDado(TpDado *no, TpCampo *campo)
 {
 	int tam, numI;
 	float numF;
-	if(no == NULL)
+	if (no == NULL)
 	{
 		printf("NULL");
 		tam = 4;
 	}
 	else
 	{
-		switch(campo->tipo)
+		switch (campo->tipo)
 		{
-			case 'I': 
-				numI = no->valor.integer;
-				printf("%d", numI); 
-				if(numI<10)
-					tam=1;
-				else if(numI<100)
-					tam = 2;
-				else if(numI<1000)
-					tam = 3;
-				else 
-					tam = 4;
-				break;
-			case 'N': 
-				numF = no->valor.numeric;
-				printf("%.2f", numF); 
-				if(numF<10)
-					tam = 3;
-				else if(numF<100)
-					tam = 4;
-				else if(numI<1000) 
-					tam = 5;
-				else 
-					tam = 6;
-				break;
-			case 'D': 
-				printf("%s", no->valor.date); 
-				tam = strlen(no->valor.date);
-				break;
-			case 'C': 
-				printf("%c", no->valor.character1);
+		case 'I':
+			numI = no->valor.integer;
+			printf("%d", numI);
+			if (numI < 10)
 				tam = 1;
-				break;
-			case 'T':
-				printf("%s", no->valor.character20); 
-				tam = strlen(no->valor.character20);
-				break;
+			else if (numI < 100)
+				tam = 2;
+			else if (numI < 1000)
+				tam = 3;
+			else
+				tam = 4;
+			break;
+		case 'N':
+			numF = no->valor.numeric;
+			printf("%.2f", numF);
+			if (numF < 10)
+				tam = 3;
+			else if (numF < 100)
+				tam = 4;
+			else if (numI < 1000)
+				tam = 5;
+			else
+				tam = 6;
+			break;
+		case 'D':
+			printf("%s", no->valor.date);
+			tam = strlen(no->valor.date);
+			break;
+		case 'C':
+			printf("%c", no->valor.character1);
+			tam = 1;
+			break;
+		case 'T':
+			printf("%s", no->valor.character20);
+			tam = strlen(no->valor.character20);
+			break;
 		}
 	}
 	return tam;
@@ -130,19 +130,19 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 	gotoxy(c, ++(*l));
 	printf("|");
 	campo = tabela->pCampos;
-	while(campo!=NULL)
+	while (campo != NULL)
 	{
-		if(campo->PK == 'S' && campo->FK != NULL)
+		if (campo->PK == 'S' && campo->FK != NULL)
 			printf("%s* **", campo->nome);
 		else if (campo->FK != NULL)
 			printf("%s**", campo->nome);
 		else if (campo->PK == 'S')
 			printf("%s*", campo->nome);
-		else 
+		else
 			printf("%s", campo->nome);
-		c = c + LARGURA_SETOR+1;
+		c = c + LARGURA_SETOR + 1;
 		gotoxy(c, *l);
-			
+
 		printf("|");
 		campo = campo->prox;
 	}
@@ -151,23 +151,23 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 	exibirLinha(largura, LARGURA_SETOR);
 	campoAtual = tabela->pCampos;
 	lAux = ++(*l);
-	while(campoAtual!=NULL)
-	{	
+	while (campoAtual != NULL)
+	{
 		*l = lAux;
 		dadoAtual = campoAtual->pDados;
 		cAux = c;
-		while(dadoAtual!=NULL)
+		while (dadoAtual != NULL)
 		{
 			gotoxy(cAux, *l);
 			printf("|");
 			printarDado(dadoAtual, campoAtual);
-			c = cAux + LARGURA_SETOR+1;
+			c = cAux + LARGURA_SETOR + 1;
 			gotoxy(c, *l);
 			printf("|");
 			c = cAux;
 			gotoxy(c, ++(*l));
 			printf("+");
-			for(i=0;i<LARGURA_SETOR;i++)
+			for (i = 0; i < LARGURA_SETOR; i++)
 			{
 				gotoxy(++c, *l);
 				printf("-");
@@ -175,10 +175,10 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 			gotoxy(++c, *l);
 			printf("+");
 			dadoAtual = dadoAtual->prox;
-			(*l)++;	
+			(*l)++;
 		}
-		
-		campoAtual= campoAtual->prox;
+
+		campoAtual = campoAtual->prox;
 	}
 	*l += 2;
 }
@@ -186,9 +186,9 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 void imprimirBancoGrade(TpBanco *banco)
 {
 	TpTabela *tabela;
-	int l=1, lAux, c=30;
+	int l = 1, lAux, c = 30;
 	system("cls");
-	if(banco == NULL)
+	if (banco == NULL)
 		printf("Nenhum banco de dados criado.\n");
 	else
 	{
@@ -196,17 +196,17 @@ void imprimirBancoGrade(TpBanco *banco)
 		printf("=== BANCO: %s ===", banco->nome);
 		l++;
 		tabela = banco->pTabelas;
-		if(tabela == NULL)
+		if (tabela == NULL)
 			printf("(nenhuma tabela criada)");
 		else
 		{
-			c=1;
-			while(tabela != NULL)
+			c = 1;
+			while (tabela != NULL)
 			{
 				imprimirTabelaGrade(tabela, &l, c);
 				tabela = tabela->prox;
 			}
-		}	
+		}
 	}
 }
 
@@ -221,65 +221,50 @@ void processarScript(char scriptString[], char stringFormatada[], Token tokens[]
 
 int main()
 {
-	char nomeArq[30], scriptString [100000], stringFormatada[100000], logErro[100]="";
-	Token tokens[1000]; 
+	char nomeArq[30], scriptString[100000], stringFormatada[100000], logErro[100] = "";
+	Token tokens[1000];
 	int TL;
 	DescritorLista descLista;
-	TpBanco *banco = NULL; 
-	init(&descLista); 
+	TpBanco *banco = NULL;
+	init(&descLista);
 	printf("### BANCO DE DADOS ###\n");
 	printf("-----------------------\n");
 	printf("[A] Importar um arquivo\n");
 	printf("[B] Escrever script do inicio\n");
-	if(toupper(getche()) == 'A')
+	if (toupper(getche()) == 'A')
 	{
 		printf("\nNome do arquivo sql: ");
 		gets(nomeArq);
 		FILE *ptr = fopen(nomeArq, "r");
-		if(ptr != NULL)
+		if (ptr != NULL)
 		{
 			toString(ptr, scriptString);
 			fclose(ptr);
 			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-			imprimirBancoGrade(banco);
+			imprimirBanco(banco);
 			printf("\n");
-			if(logErro[0]!='\0')
+			if (logErro[0] != '\0')
 				printf("ERRO: %s\n\n", logErro);
-			while(lerScriptUsuario(scriptString))
+			while (lerScriptUsuario(scriptString))
 			{
 				processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-				imprimirBancoGrade(banco);
+				imprimirBanco(banco);
 				printf("\n");
-				if(logErro[0]!='\0')
+				if (logErro[0] != '\0')
 					printf("ERRO: %s\n\n", logErro);
-				
 			}
-			
 		}
 		else
 			printf("Falha ao importar o arquivo!\n");
 	}
 	else
 	{
-		while(lerScriptUsuario(scriptString))
+		while (lerScriptUsuario(scriptString))
 		{
 			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-			imprimirBancoGrade(banco);
+			imprimirBanco(banco);
 		}
 	}
-		
 
-	
-	// printf("%s", stringFormatada);
-	// printf("\n\n");
-	
-	// printf("\n\n");
-	// imprimirComandos(&descLista);
-	
-	// printf("\n\n");
-	// imprimirBanco(banco);
-	
-	
-	
 	return 0;
 }
