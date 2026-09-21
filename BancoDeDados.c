@@ -10,200 +10,205 @@
 
 #define LARGURA_SETOR 14
 
- int larguraTabela(int qtd)
- {
- 	return qtd*14;
- }
-
- int qtdCampos(TpTabela *tabela)
- {
- 	int cont=0;
- 	TpCampo *aux;
- 	aux = tabela->pCampos;
- 	while(aux!=NULL)
- 	{
- 		cont++;
- 		aux=aux->prox;
- 	}
- 	return cont;
- }
-
- int qtdDados(TpDado *dado)
- {
- 	int cont=0;
- 	while(dado!=NULL)
- 	{
- 		cont++;
- 		dado = dado->prox;
- 	}
- 	return cont;
- }
-
- void exibirLinha(int largura, int sep)
- {
- 	int aux = sep;
- 	printf("+");
- 	while(largura>0)
- 	{
- 		if(aux==0)
- 		{
- 			printf("+");
- 			aux = sep;
- 		}
- 		else
- 		{
- 			printf("-");
- 			largura--;
- 			aux--;
- 		}
- 	}
- 	printf("+");
- }
-
- int printarDado(TpDado *no, TpCampo *campo)
- {
- 	int tam, numI;
- 	float numF;
- 	if(no == NULL)
- 	{
- 		printf("NULL");
- 		tam = 4;
- 	}
- 	else
- 	{
- 		switch(campo->tipo)
- 		{
- 			case 'I': 
- 				numI = no->valor.integer;
- 				printf("%d", numI); 
- 				if(numI<10)
- 					tam=1;
- 				else if(numI<100)
- 					tam = 2;
- 				else
- 					tam=3;
- 				break;
- 			case 'N': 
- 				numF = no->valor.numeric;
- 				printf("%.2f", numF); 
- 				if(numF<10)
- 					tam = 3;
- 				else if(numF<100)
- 					tam = 4;
- 				else 
- 					tam = 5;
- 				break;
- 			case 'D': 
- 				printf("%s", no->valor.date); 
- 				tam = strlen(no->valor.date);
- 				break;
- 			case 'C': 
- 				printf("%c", no->valor.character1);
- 				tam = 1;
- 				break;
- 			case 'T':
- 				printf("%s", no->valor.character20); 
- 				tam = strlen(no->valor.character20);
- 				break;
- 		}
- 	}
- 	return tam;
- }
-
- void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
- {
- 	int largura, qtdC, qtdD, aux, cInicial, lAux, cAux, i;
- 	cInicial = c;
- 	TpDado *dadoAtual;
- 	TpCampo *campo, *campoAtual;
- 	gotoxy(c, ++(*l));
- 	printf("TABELA: %s", tabela->nome);
- 	qtdC = qtdCampos(tabela);
- 	qtdD = qtdDados(tabela->pCampos->pDados);
- 	largura = larguraTabela(qtdC);
- 	gotoxy(c, ++(*l));
- 	exibirLinha(largura, LARGURA_SETOR);
- 	gotoxy(c, ++(*l));
- 	printf("|");
- 	campo = tabela->pCampos;
- 	while(campo!=NULL)
- 	{
- 		if(campo->PK == 'S' && campo->FK != NULL)
- 			printf("%s* **", campo->nome);
- 		else if (campo->FK != NULL)
- 			printf("%s**", campo->nome);
- 		else if (campo->PK == 'S')
- 			printf("%s*", campo->nome);
- 		else 
- 			printf("%s", campo->nome);
- 		c = c + LARGURA_SETOR+1;
- 		gotoxy(c, *l);
-			
- 		printf("|");
- 		campo = campo->prox;
- 	}
- 	c = cInicial;
- 	gotoxy(c, ++(*l));
- 	exibirLinha(largura, LARGURA_SETOR);
- 	campoAtual = tabela->pCampos;
- 	lAux = ++(*l);
- 	while(campoAtual!=NULL)
- 	{	
- 		dadoAtual = campoAtual->pDados;
- 		cAux = c;
- 		while(dadoAtual!=NULL)
- 		{
- 			gotoxy(cAux, *l);
- 			printf("|");
- 			printarDado(dadoAtual, campoAtual);
- 			c = cAux + LARGURA_SETOR+1;
- 			gotoxy(c, *l);
- 			printf("|");
- 			c = cAux;
- 			gotoxy(c, ++(*l));
- 			printf("+");
- 			for(i=0;i<LARGURA_SETOR;i++)
- 			{
- 				gotoxy(++c, *l);
- 				printf("-");
- 			}
- 			gotoxy(++c, *l);
- 			printf("+");
- 			dadoAtual = dadoAtual->prox;
- 			(*l)++;	
- 		}
- 		*l = lAux;
- 		campoAtual= campoAtual->prox;
- 	}
- 	*l += qtdD+2;
+int larguraTabela(int qtd)
+{
+	return qtd*14;
 }
 
- void imprimirBancoGrade(TpBanco *banco)
- {
- 	TpTabela *tabela;
- 	int l=1, lAux, c=30;
- 	system("cls");
- 	if(banco == NULL)
- 		printf("Nenhum banco de dados criado.\n");
- 	else
- 	{
- 		gotoxy(c, l);
- 		printf("=== BANCO: %s ===", banco->nome);
- 		l++;
- 		tabela = banco->pTabelas;
- 		if(tabela == NULL)
- 			printf("(nenhuma tabela criada)");
- 		else
- 		{
- 			c=1;
- 			while(tabela != NULL)
- 			{
- 				imprimirTabelaGrade(tabela, &l, c);
- 				tabela = tabela->prox;
- 			}
- 		}	
- 	}
- }
+int qtdCampos(TpTabela *tabela)
+{
+	int cont=0;
+	TpCampo *aux;
+	aux = tabela->pCampos;
+	while(aux!=NULL)
+	{
+		cont++;
+		aux=aux->prox;
+	}
+	return cont;
+}
+
+int qtdDados(TpDado *dado)
+{
+	int cont=0;
+	while(dado!=NULL)
+	{
+		cont++;
+		dado = dado->prox;
+	}
+	return cont;
+}
+
+void exibirLinha(int largura, int sep)
+{
+	int aux = sep;
+	printf("+");
+	while(largura>0)
+	{
+		if(aux==0)
+		{
+			printf("+");
+			aux = sep;
+		}
+		else
+		{
+			printf("-");
+			largura--;
+			aux--;
+		}
+	}
+	printf("+");
+}
+
+int printarDado(TpDado *no, TpCampo *campo)
+{
+	int tam, numI;
+	float numF;
+	if(no == NULL)
+	{
+		printf("NULL");
+		tam = 4;
+	}
+	else
+	{
+		switch(campo->tipo)
+		{
+			case 'I': 
+				numI = no->valor.integer;
+				printf("%d", numI); 
+				if(numI<10)
+					tam=1;
+				else if(numI<100)
+					tam = 2;
+				else if(numI<1000)
+					tam = 3;
+				else 
+					tam = 4;
+				break;
+			case 'N': 
+				numF = no->valor.numeric;
+				printf("%.2f", numF); 
+				if(numF<10)
+					tam = 3;
+				else if(numF<100)
+					tam = 4;
+				else if(numI<1000) 
+					tam = 5;
+				else 
+					tam = 6;
+				break;
+			case 'D': 
+				printf("%s", no->valor.date); 
+				tam = strlen(no->valor.date);
+				break;
+			case 'C': 
+				printf("%c", no->valor.character1);
+				tam = 1;
+				break;
+			case 'T':
+				printf("%s", no->valor.character20); 
+				tam = strlen(no->valor.character20);
+				break;
+		}
+	}
+	return tam;
+}
+
+void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
+{
+	int largura, qtdC, qtdD, aux, cInicial, lAux, cAux, i;
+	cInicial = c;
+	TpDado *dadoAtual;
+	TpCampo *campo, *campoAtual;
+	gotoxy(c, ++(*l));
+	printf("TABELA: %s", tabela->nome);
+	qtdC = qtdCampos(tabela);
+	qtdD = qtdDados(tabela->pCampos->pDados);
+	largura = larguraTabela(qtdC);
+	gotoxy(c, ++(*l));
+	exibirLinha(largura, LARGURA_SETOR);
+	gotoxy(c, ++(*l));
+	printf("|");
+	campo = tabela->pCampos;
+	while(campo!=NULL)
+	{
+		if(campo->PK == 'S' && campo->FK != NULL)
+			printf("%s* **", campo->nome);
+		else if (campo->FK != NULL)
+			printf("%s**", campo->nome);
+		else if (campo->PK == 'S')
+			printf("%s*", campo->nome);
+		else 
+			printf("%s", campo->nome);
+		c = c + LARGURA_SETOR+1;
+		gotoxy(c, *l);
+			
+		printf("|");
+		campo = campo->prox;
+	}
+	c = cInicial;
+	gotoxy(c, ++(*l));
+	exibirLinha(largura, LARGURA_SETOR);
+	campoAtual = tabela->pCampos;
+	lAux = ++(*l);
+	while(campoAtual!=NULL)
+	{	
+		*l = lAux;
+		dadoAtual = campoAtual->pDados;
+		cAux = c;
+		while(dadoAtual!=NULL)
+		{
+			gotoxy(cAux, *l);
+			printf("|");
+			printarDado(dadoAtual, campoAtual);
+			c = cAux + LARGURA_SETOR+1;
+			gotoxy(c, *l);
+			printf("|");
+			c = cAux;
+			gotoxy(c, ++(*l));
+			printf("+");
+			for(i=0;i<LARGURA_SETOR;i++)
+			{
+				gotoxy(++c, *l);
+				printf("-");
+			}
+			gotoxy(++c, *l);
+			printf("+");
+			dadoAtual = dadoAtual->prox;
+			(*l)++;	
+		}
+		
+		campoAtual= campoAtual->prox;
+	}
+	*l += 2;
+}
+
+void imprimirBancoGrade(TpBanco *banco)
+{
+	TpTabela *tabela;
+	int l=1, lAux, c=30;
+	system("cls");
+	if(banco == NULL)
+		printf("Nenhum banco de dados criado.\n");
+	else
+	{
+		gotoxy(c, l);
+		printf("=== BANCO: %s ===", banco->nome);
+		l++;
+		tabela = banco->pTabelas;
+		if(tabela == NULL)
+			printf("(nenhuma tabela criada)");
+		else
+		{
+			c=1;
+			while(tabela != NULL)
+			{
+				imprimirTabelaGrade(tabela, &l, c);
+				tabela = tabela->prox;
+			}
+		}	
+	}
+}
 
 void processarScript(char scriptString[], char stringFormatada[], Token tokens[], int TL, DescritorLista descLista, TpBanco **banco, char logErro[])
 {
@@ -238,6 +243,8 @@ int main()
 			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
 			imprimirBancoGrade(banco);
 			printf("\n");
+			if(logErro[0]!='\0')
+				printf("ERRO: %s\n\n", logErro);
 			while(lerScriptUsuario(scriptString))
 			{
 				processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);

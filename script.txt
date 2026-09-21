@@ -70,5 +70,9 @@ ALTER TABLE os_peca ADD CONSTRAINT peca_os_peca
     FOREIGN KEY (id_peca) REFERENCES peca (id_peca);
 
 INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (1, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
-
 INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (2, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
+INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (3, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
+INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (4, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
+INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (5, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
+
+

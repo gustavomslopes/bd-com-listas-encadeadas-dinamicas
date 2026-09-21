@@ -39,11 +39,21 @@
 #define TOK_VIRGULA 34
 #define TOK_PONTO_VIRGULA 35
 
-#define TOK_IDENTIFICADOR 36
-#define TOK_NUMERO 37
-#define TOK_STRING 38
+#define TOK_IGUAL 36
+#define TOK_DIFERENTE 37
+#define TOK_MENOR 38
+#define TOK_MAIOR 39
+#define TOK_MENOR_IGUAL 40
+#define TOK_MAIOR_IGUAL 41
 
-#define TOTAL_TOK 40
+#define TOK_IDENTIFICADOR 42
+#define TOK_NUMERO 43
+
+#define TOK_BETWEEN 44
+
+#define TOK_STRING 45
+
+#define TOTAL_TOK 41
 
 void toString(FILE *arq, char stringFormatada[])
 {
@@ -74,7 +84,7 @@ void toStringFormatada(char scriptString[], char stringFormatada[])
 					stringFormatada[TL++] = caractere;
 			
 		}
-		else if(caractere == '(' || caractere == ')' || caractere == ',' || caractere == ';')
+		else if(caractere == '(' || caractere == ')' || caractere == ',' || caractere == ';' || caractere == '=')
 		{
 			if(TL> 0 && stringFormatada[TL-1] != ' ')
 				stringFormatada[TL++] = ' ';	
@@ -83,7 +93,7 @@ void toStringFormatada(char scriptString[], char stringFormatada[])
 		}
 		else
 		{
-			if (TL > 0 && (stringFormatada[TL-1] == '(' || stringFormatada[TL-1] == ')' || stringFormatada[TL-1] == ',' || stringFormatada[TL-1] == ';'))
+			if (TL > 0 && (stringFormatada[TL-1] == '(' || stringFormatada[TL-1] == ')' || stringFormatada[TL-1] == ',' || stringFormatada[TL-1] == ';' || stringFormatada[TL-1] == '='))
 				stringFormatada[TL++] = ' ';	
 			stringFormatada[TL++] = caractere;
 		}	
@@ -138,7 +148,8 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 		{"VALUES", TOK_VALUES}, 
 		{"SET", TOK_SET}, 
 		{"FROM", TOK_FROM},
-		{"WHERE", TOK_WHERE}, 
+		{"WHERE", TOK_WHERE},
+		{"BETWEEN", TOK_BETWEEN}, 
 		{"ORDER", TOK_ORDER}, 
 		{"BY", TOK_BY}, 
 		{"GROUP", TOK_GROUP},
@@ -173,12 +184,31 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 		{
 			TLP=0;
 			palavra[0] = '\0';
-			while(caractere!=' ' && caractere!=';' && caractere!= '\0')
-			{
-				palavra[TLP++] = caractere;
-				caractere = stringFormatada[i++];
-			}
-			palavra[TLP]='\0';
+		
+		    if(caractere == '\'')
+		    {
+		        palavra[TLP++] = caractere;
+		        caractere = stringFormatada[i++];
+		        while(caractere != '\'' && caractere != '\0')
+		        {
+		            palavra[TLP++] = caractere;
+		            caractere = stringFormatada[i++];
+		        }
+		        if(caractere == '\'')
+		        {
+		            palavra[TLP++] = caractere;
+		            caractere = stringFormatada[i++];
+		        }
+		    }
+		    else
+		    {
+		        while(caractere!=' ' && caractere!=';' && caractere!= '\0')
+		        {
+		            palavra[TLP++] = caractere;
+		            caractere = stringFormatada[i++];
+		        }
+		    }
+	    	palavra[TLP]='\0';
 			if(TLP!=0)
 			{
 				token = tokenizarPalavra(tabelaTokens, palavra);
@@ -191,7 +221,16 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 						else if((strcmp(palavra, "(") == 0)) token = TOK_ABRE_PARENTESE;
 						else if((strcmp(palavra, ",") == 0)) token = TOK_VIRGULA;
 						else if((strcmp(palavra, ";") == 0)) token = TOK_PONTO_VIRGULA;
+						else if((strcmp(palavra, "=") == 0)) token = TOK_IGUAL;
+						else if((strcmp(palavra, "<") == 0)) token = TOK_MENOR;
+						else if((strcmp(palavra, ">") == 0)) token = TOK_MAIOR;
 						else token = TOK_IDENTIFICADOR;
+					}
+					else if(TLP==2)
+					{
+						if(strcmp(palavra, ">=") == 0) token = TOK_MAIOR_IGUAL;
+						else if((strcmp(palavra, "<=") == 0)) token = TOK_MENOR_IGUAL;
+						else token = TOK_DIFERENTE;
 					}
 					else
 					{
@@ -218,9 +257,6 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 	}
 	
 	*TLToken = TLS;
-
-	// for(i=0 ;i<TLS;i++)
-	// 	printf("%d:%s ", tokens[i].tipo, tokens[i].palavra);
 }
 
 void separarComandos(DescritorLista *descLista, Token tokens[], int TL)
@@ -885,6 +921,7 @@ char interpretarInsert(TpBanco **banco, Token comando[], char logErro[])
 								else
 									return erro(logErro, "Esperado valor!");
 							}
+							return 1;
 						}
 						else
 							return erro(logErro, "Falta (");
@@ -905,6 +942,638 @@ char interpretarInsert(TpBanco **banco, Token comando[], char logErro[])
 		return erro(logErro, "Esperado INTO");
 }
 
+union dados converterValor(char tipo, char palavra[])
+{
+    union dados valor;
+    char copia[30];
+    strcpy(copia, palavra);
+
+    if (copia[0] == '\'' && copia[strlen(copia) - 1] == '\'')
+        tirarApostrofo(copia);
+
+    switch (tipo)
+    {
+        case 'I': valor.integer = atoi(copia); break;
+        case 'N': valor.numeric = atof(copia); break;
+        case 'D': strcpy(valor.date, copia); break;
+        case 'C': valor.character1 = copia[0]; break;
+        case 'T': strcpy(valor.character20, copia); break;
+    }
+    return valor;
+}
+
+char verificaJOIN(Token comando[],int  i)
+{
+	int j=0;
+	while(comando[i].palavra[j]!='\0' && comando[i].palavra[j]!='.')
+		j++;
+	if(comando[i].palavra[j]=='\0')
+		return 0;	
+	return 1;
+}
+
+void separarTabelaCampo(char palavra[], char nomeTabela[], char nomeCampo[])
+{
+	int j = 0;
+	while(palavra[j] != '.')
+	{
+		nomeTabela[j] = palavra[j];
+		j++;
+	}
+	nomeTabela[j] = '\0';
+	strcpy(nomeCampo, palavra + j + 1);
+}
+
+TpCampo *buscarCampoJoin(TpBanco *banco, char palavra[])
+{
+	char nomeTabela[20], nomeCampo[20];
+	TpTabela *tabela;
+	TpCampo *campo;
+
+	separarTabelaCampo(palavra, nomeTabela, nomeCampo);
+
+	tabela = banco->pTabelas;
+	while(tabela != NULL && stricmp(tabela->nome, nomeTabela) != 0)
+		tabela = tabela->prox;
+	if(tabela == NULL)
+		return NULL;
+
+	campo = tabela->pCampos;
+	while(campo != NULL && stricmp(campo->nome, nomeCampo) != 0)
+		campo = campo->prox;
+	return campo;
+}
+
+TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabela, Token comando[], int *i, char logErro[])
+{
+	TpCondicao *nova, *L = NULL, *aux;
+
+	(*i)++; 
+
+	if(comando[*i].tipo != TOK_STRING && comando[*i].tipo != TOK_IDENTIFICADOR)
+	{
+		erro(logErro, "Esperado o nome de campo do WHERE");
+		return NULL;
+	}
+
+	while(comando[*i].tipo != TOK_PONTO_VIRGULA)
+	{
+		nova = (TpCondicao*)malloc(sizeof(TpCondicao));
+		nova->prox = NULL;
+		nova->campoComparado = NULL; 
+		if(L == NULL)
+			L = nova;
+		else
+		{
+			aux = L;
+			while(aux->prox != NULL)
+				aux = aux->prox;
+			aux->prox = nova;
+		}
+		nova->join=verificaJOIN(comando, *i);
+		if(!nova->join)
+			nova->campo = buscarCampo(tabela, comando, *i);
+		else
+			nova->campo = buscarCampoJoin(banco, comando[*i].palavra);
+		if(nova->campo == NULL)
+		{
+			erro(logErro, "Campo nao encontrado");
+			free(nova);
+			return NULL;
+		}
+		(*i)++;
+
+		if(comando[*i].tipo == TOK_IGUAL || comando[*i].tipo == TOK_DIFERENTE ||
+		   comando[*i].tipo == TOK_MENOR || comando[*i].tipo == TOK_MAIOR ||
+		   comando[*i].tipo == TOK_MENOR_IGUAL || comando[*i].tipo == TOK_MAIOR_IGUAL)
+		{
+		    nova->operador = comando[*i].tipo;
+		    (*i)++;
+		
+		    if(verificaJOIN(comando, *i))
+		    {
+		        nova->campoComparado = buscarCampoJoin(banco, comando[*i].palavra);
+		        if(nova->campoComparado == NULL)
+		        {
+		            erro(logErro, "Campo referenciado no JOIN nao encontrado");
+		            free(nova);
+		            return NULL;
+		        }
+		    }
+		    else
+		    {
+		        nova->campoComparado = NULL;
+		        nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
+		    }
+		    (*i)++;
+		}
+		else if(comando[*i].tipo == TOK_BETWEEN)
+		{
+			nova->operador = comando[*i].tipo;
+			(*i)++;
+			nova->valor = converterValor(nova->campo->tipo, comando[*i].palavra);
+			(*i)++;
+			(*i)++;
+			nova->valor2 = converterValor(nova->campo->tipo, comando[*i].palavra);
+			(*i)++;
+		}
+		else
+		{
+			erro(logErro, "Sem operador");
+			free(nova);
+			return NULL;
+		}
+
+		if(comando[*i].tipo == TOK_AND || comando[*i].tipo == TOK_OR)
+		{
+			nova->conector = comando[*i].tipo;
+			(*i)++;
+		}
+		else
+			nova->conector = -1;
+	}
+	
+	if (comando[*i].tipo != TOK_PONTO_VIRGULA){
+        erro(logErro, "Falta ;");
+        return NULL;
+    }
+	return L;
+}
+
+
+int posicaoDoCampo(TpTabela *tabela, TpCampo *alvo)
+{
+    TpCampo *campo = tabela->pCampos;
+    int pos = 0;
+    while (campo != NULL)
+    {
+        if (campo == alvo) 
+			return pos;
+        campo = campo->prox;
+        pos++;
+    }
+    return -1;
+}
+
+int contarCampos(TpTabela *tabela)
+{
+    TpCampo *campo = tabela->pCampos;
+    int n = 0;
+    while (campo != NULL) {
+	 n++; 
+	 campo = campo->prox; 
+	 }
+    return n;
+}
+
+
+char avaliarCondicao(TpCondicao *cond, union dados valorLinha)
+{
+    switch (cond->campo->tipo)
+    {
+        case 'I':
+            switch (cond->operador)
+            {
+                case TOK_IGUAL: return valorLinha.integer == cond->valor.integer;
+                case TOK_DIFERENTE: return valorLinha.integer != cond->valor.integer;
+                case TOK_MENOR: return valorLinha.integer <  cond->valor.integer;
+                case TOK_MAIOR: return valorLinha.integer >  cond->valor.integer;
+                case TOK_MENOR_IGUAL: return valorLinha.integer <= cond->valor.integer;
+                case TOK_MAIOR_IGUAL: return valorLinha.integer >= cond->valor.integer;
+                case TOK_BETWEEN: return valorLinha.integer >= cond->valor.integer && valorLinha.integer <= cond->valor2.integer;
+            }
+            break;
+
+        case 'N':
+            switch (cond->operador)
+            {
+                case TOK_IGUAL: return valorLinha.numeric == cond->valor.numeric;
+                case TOK_DIFERENTE: return valorLinha.numeric != cond->valor.numeric;
+                case TOK_MENOR: return valorLinha.numeric <  cond->valor.numeric;
+                case TOK_MAIOR: return valorLinha.numeric >  cond->valor.numeric;
+                case TOK_MENOR_IGUAL: return valorLinha.numeric <= cond->valor.numeric;
+                case TOK_MAIOR_IGUAL: return valorLinha.numeric >= cond->valor.numeric;
+                case TOK_BETWEEN: return valorLinha.numeric >= cond->valor.numeric && valorLinha.numeric <= cond->valor2.numeric;
+            }
+            break;
+
+        case 'D':
+        {
+            int cmp = strcmp(valorLinha.date, cond->valor.date);
+            switch (cond->operador)
+            {
+                case TOK_IGUAL: return cmp == 0;
+                case TOK_DIFERENTE: return cmp != 0;
+                case TOK_MENOR: return cmp <  0;
+                case TOK_MAIOR: return cmp >  0;
+                case TOK_MENOR_IGUAL: return cmp <= 0;
+                case TOK_MAIOR_IGUAL: return cmp >= 0;
+                case TOK_BETWEEN: return strcmp(valorLinha.date, cond->valor.date)  >= 0 && strcmp(valorLinha.date, cond->valor2.date) <= 0;
+            }
+            break;
+        }
+
+        case 'T':
+        {
+            int cmp = strcmp(valorLinha.character20, cond->valor.character20);
+            switch (cond->operador)
+            {
+                case TOK_IGUAL: return cmp == 0;
+                case TOK_DIFERENTE: return cmp != 0;
+                case TOK_MENOR: return cmp <  0;
+                case TOK_MAIOR: return cmp >  0;
+                case TOK_MENOR_IGUAL: return cmp <= 0;
+                case TOK_MAIOR_IGUAL: return cmp >= 0;
+            }
+            break;
+        }
+
+        case 'C':
+            switch (cond->operador)
+            {
+                case TOK_IGUAL: return valorLinha.character1 == cond->valor.character1;
+                case TOK_DIFERENTE: return valorLinha.character1 != cond->valor.character1;
+            }
+            break;
+    }
+    return 0;
+}
+
+
+char avaliarLinha(TpCondicao *condicoes, TpDado *valoresDaLinha[])
+{
+    TpCondicao *c = condicoes;
+    int k = 0;
+    char resultado = avaliarCondicao(c, valoresDaLinha[k]->valor);
+
+    while (c->conector != -1)
+    {
+        char parcial;
+        k++;
+        parcial = avaliarCondicao(c->prox, valoresDaLinha[k]->valor);
+        if (c->conector == TOK_AND)
+            resultado = resultado && parcial;
+        else
+            resultado = resultado || parcial;
+        c = c->prox;
+    }
+    return resultado;
+}
+
+void imprimirCondicoes(TpCondicao *condicoes)
+{
+	TpCondicao *c = condicoes;
+	int n = 1;
+
+	while(c != NULL)
+	{
+		printf("Condicao %d:\n", n);
+		printf("  campo: %s\n", c->campo->nome);
+		printf("  operador (token): %d\n", c->operador);
+		printf("  join: %d\n", c->join);
+
+		if(c->campoComparado != NULL)
+			printf("  campo comparado: %s\n", c->campoComparado->nome);
+		else
+		{
+			switch(c->campo->tipo)
+			{
+				case 'I': printf("  valor: %d\n", c->valor.integer); break;
+				case 'N': printf("  valor: %f\n", c->valor.numeric); break;
+				case 'D': printf("  valor: %s\n", c->valor.date); break;
+				case 'C': printf("  valor: %c\n", c->valor.character1); break;
+				case 'T': printf("  valor: %s\n", c->valor.character20); break;
+			}
+			if(c->operador == TOK_BETWEEN)
+			{
+				switch(c->campo->tipo)
+				{
+					case 'I': printf("  valor2: %d\n", c->valor2.integer); break;
+					case 'N': printf("  valor2: %f\n", c->valor2.numeric); break;
+					case 'D': printf("  valor2: %s\n", c->valor2.date); break;
+					case 'T': printf("  valor2: %s\n", c->valor2.character20); break;
+				}
+			}
+		}
+		if(c->conector == TOK_AND)
+			printf("  conector: %d (%s)\n", c->conector,"AND");
+		else if(c->conector == TOK_OR)
+			printf("  conector: %d (%s)\n", c->conector,"OR");
+		else
+			printf("  conector: %d (%s)\n", c->conector,"fim");
+
+		c = c->prox;
+		n++;
+	}
+}
+
+
+int dadosSaoIguais(TpDado *dado1, TpDado *dado2, char tipoCampo)
+{
+    if (dado1 == NULL || dado2 == NULL) 
+        return 0;
+
+    switch (tipoCampo)
+    {
+        case 'I': return (dado1->valor.integer == dado2->valor.integer);
+        case 'N': return (dado1->valor.numeric == dado2->valor.numeric);
+        case 'C': return (dado1->valor.character1 == dado2->valor.character1);
+        case 'D': return (strcmp(dado1->valor.date, dado2->valor.date) == 0);
+        case 'T': return (strcmp(dado1->valor.character20, dado2->valor.character20) == 0);
+        
+        default: return 0;
+    }
+}
+char ehReferenciadoEmOutraTabela(TpBanco *banco, TpTabela *tabela, TpDado **atualPorCampo)
+{
+    TpTabela *tabela2;
+    TpCampo *campoPK, *campo2;
+    TpDado *dadoAux;
+    TpDado *dadoPK;
+    int posPK = 0;
+
+    campoPK = tabela->pCampos;
+    while (campoPK != NULL && campoPK->PK != 'S')
+    {
+        posPK++;
+        campoPK = campoPK->prox;
+    }
+    if (campoPK == NULL)
+        return 0;
+
+    dadoPK = atualPorCampo[posPK];
+    if (dadoPK == NULL)
+        return 0;
+
+    tabela2 = banco->pTabelas;
+    while (tabela2 != NULL)
+    {
+        if (tabela2 != tabela)
+        {
+            campo2 = tabela2->pCampos;
+            while (campo2 != NULL)
+            {
+                if (campo2->FK == campoPK)
+                {
+                    dadoAux = campo2->pDados;
+                    while (dadoAux != NULL)
+                    {
+                        if (dadosSaoIguais(dadoAux, dadoPK, campoPK->tipo))
+                            return 1;
+                        dadoAux = dadoAux->prox;
+                    }
+                }
+                campo2 = campo2->prox;
+            }
+        }
+        tabela2 = tabela2->prox;
+    }
+    return 0;
+}
+
+char interpretarDelete(TpBanco **banco, Token comando[], char logErro[])
+{
+    int i = 1, nCampos, k;
+    TpTabela *tabela;
+    TpCampo *campo;
+    TpCondicao *condicoes = NULL;
+    TpDado **atualPorCampo, **anteriorPorCampo, **proximoPorCampo;
+    TpDado *valoresCondicoes[10];
+    char bate;
+
+    if(comando[i].tipo != TOK_FROM)
+        return erro(logErro, "Sem o FROM");
+    i++;
+
+    if(comando[i].tipo != TOK_STRING && comando[i].tipo != TOK_IDENTIFICADOR)
+        return erro(logErro, "Sem nome da tabela");
+
+    tabela = buscarTabela(*banco, comando, i);
+    if(tabela == NULL)
+        return erro(logErro, "Tabela nao encontrada");
+    i++;
+
+    if(comando[i].tipo == TOK_WHERE)
+    {
+        condicoes = InterpretarWHERE(*banco, tabela, comando, &i, logErro);
+        if(condicoes == NULL)
+            return 0;
+        imprimirCondicoes(condicoes);
+    }
+
+    if(comando[i].tipo != TOK_PONTO_VIRGULA)
+        return erro(logErro, "Falta ;");
+
+    nCampos = contarCampos(tabela);
+    atualPorCampo = (TpDado**) malloc(nCampos * sizeof(TpDado*));
+    anteriorPorCampo = (TpDado**) malloc(nCampos * sizeof(TpDado*));
+    proximoPorCampo = (TpDado**) malloc(nCampos * sizeof(TpDado*));
+    campo = tabela->pCampos;
+    for(k = 0; k < nCampos; k++)
+    {
+        atualPorCampo[k] = campo->pDados;
+        campo = campo->prox;
+    }
+
+    while(atualPorCampo[0] != NULL)
+    {
+        if(condicoes == NULL)
+            bate = 1;
+        else
+        {
+            TpCondicao *c = condicoes;
+            int j = 0;
+            while(c != NULL)
+            {
+                int pos = posicaoDoCampo(tabela, c->campo);
+                valoresCondicoes[j++] = atualPorCampo[pos];
+                c = c->prox;
+            }
+            bate = avaliarLinha(condicoes, valoresCondicoes);
+        }
+        if(bate)
+        {
+            if(ehReferenciadoEmOutraTabela(*banco, tabela, atualPorCampo))
+            {
+                free(atualPorCampo);
+                free(anteriorPorCampo);
+                free(proximoPorCampo);
+                return erro(logErro, "Violacao de chave estrangeira: um ou mais registros estao em uso.");
+            }
+        }
+        for(k = 0; k < nCampos; k++)
+            atualPorCampo[k] = atualPorCampo[k]->prox;
+    }
+    campo = tabela->pCampos;
+    for(k = 0; k < nCampos; k++)
+    {
+        atualPorCampo[k] = campo->pDados;
+        anteriorPorCampo[k] = NULL;
+        campo = campo->prox;
+    }
+
+    while(atualPorCampo[0] != NULL)
+    {
+        if(condicoes == NULL)
+            bate = 1;
+        else
+        {
+            TpCondicao *c = condicoes;
+            int j = 0;
+            while(c != NULL)
+            {
+                int pos = posicaoDoCampo(tabela, c->campo);
+                valoresCondicoes[j++] = atualPorCampo[pos];
+                c = c->prox;
+            }
+            bate = avaliarLinha(condicoes, valoresCondicoes);
+        }
+
+        for(k = 0; k < nCampos; k++)
+            proximoPorCampo[k] = atualPorCampo[k]->prox;
+
+        if(bate)
+        {
+            campo = tabela->pCampos;
+            for(k = 0; k < nCampos; k++)
+            {
+                if(anteriorPorCampo[k] == NULL)
+                    campo->pDados = atualPorCampo[k]->prox;
+                else
+                    anteriorPorCampo[k]->prox = atualPorCampo[k]->prox;
+
+                free(atualPorCampo[k]);
+                campo = campo->prox;
+            }
+        }
+        else
+        {
+            for(k = 0; k < nCampos; k++)
+                anteriorPorCampo[k] = atualPorCampo[k];
+        }
+
+        for(k = 0; k < nCampos; k++)
+            atualPorCampo[k] = proximoPorCampo[k];
+    }
+
+    free(atualPorCampo);
+    free(anteriorPorCampo);
+    free(proximoPorCampo);
+    return 1;
+}
+
+
+char interpretarUpdate(TpBanco **banco, Token comando[], char logErro[])
+{
+    int i = 1, nCampos, k, nSets = 0;
+    TpTabela *tabela;
+    TpCampo *campo;
+    TpCampo *camposSet[15];
+    union dados valoresSet[15];
+    TpCondicao *condicoes = NULL;
+    TpDado **atualPorCampo;
+    TpDado *valoresCondicoes[10];
+    char bate;
+
+    if(comando[i].tipo != TOK_STRING && comando[i].tipo != TOK_IDENTIFICADOR)
+        return erro(logErro, "Falta o nome da tabela");
+
+    tabela = buscarTabela(*banco, comando, i);
+    if(tabela == NULL)
+        return erro(logErro, "Tabela nao encontrada");
+    i++;
+
+    if(comando[i].tipo != TOK_SET)
+        return erro(logErro, "Falta o SET");
+    i++;
+
+    while(comando[i].tipo != TOK_WHERE && comando[i].tipo != TOK_PONTO_VIRGULA)
+    {
+        if(comando[i].tipo != TOK_STRING && comando[i].tipo != TOK_IDENTIFICADOR)
+            return erro(logErro, "Esperado nome de coluna no SET");
+
+        camposSet[nSets] = buscarCampo(tabela, comando, i);
+        if(camposSet[nSets] == NULL)
+            return erro(logErro, "Coluna do SET nao encontrada");
+        i++;
+
+        if(comando[i].tipo != TOK_IGUAL)
+            return erro(logErro, "Esperado = no SET");
+        i++;
+
+        valoresSet[nSets] = converterValor(camposSet[nSets]->tipo, comando[i].palavra);
+        nSets++;
+        i++;
+
+        if(comando[i].tipo == TOK_VIRGULA)
+            i++;
+    }
+
+    if(comando[i].tipo == TOK_WHERE)
+    {
+        condicoes = InterpretarWHERE(*banco, tabela, comando, &i, logErro);
+        if(condicoes == NULL)
+            return 0;
+    }
+
+    if(comando[i].tipo != TOK_PONTO_VIRGULA)
+        return erro(logErro, "Falta ;");
+
+    nCampos = contarCampos(tabela);
+    atualPorCampo = (TpDado**) malloc(nCampos * sizeof(TpDado*));
+
+    campo = tabela->pCampos;
+    for(k = 0; k < nCampos; k++)
+    {
+        atualPorCampo[k] = campo->pDados;
+        campo = campo->prox;
+    }
+
+    while(atualPorCampo[0] != NULL)
+    {
+        if(condicoes == NULL)
+            bate = 1;
+        else
+        {
+            TpCondicao *c = condicoes;
+            int j = 0;
+            while(c != NULL)
+            {
+                int pos = posicaoDoCampo(tabela, c->campo);
+                valoresCondicoes[j++] = atualPorCampo[pos];
+                c = c->prox;
+            }
+            bate = avaliarLinha(condicoes, valoresCondicoes);
+        }
+
+        if(bate)
+        {
+        	for(k = 0; k < nSets; k++) 
+		    {
+		        if(camposSet[k]->PK == 'S')
+		        {
+		            if(ehReferenciadoEmOutraTabela(*banco, tabela, atualPorCampo))
+		            {
+		                free(atualPorCampo);
+		                return erro(logErro, "Nao e possivel alterar a PK: ela esta sendo referenciada por uma FK.");
+		            }
+		        }
+		    }
+            for(k = 0; k < nSets; k++)
+            {
+                int pos = posicaoDoCampo(tabela, camposSet[k]);
+                atualPorCampo[pos]->valor = valoresSet[k];
+            }
+        }
+
+        for(k = 0; k < nCampos; k++)
+            atualPorCampo[k] = atualPorCampo[k]->prox;
+    }
+
+    free(atualPorCampo);
+    return 1;
+}
+
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErro[])
 {
 	Lista *comandoAtual = del(&*descLista);
@@ -917,10 +1586,10 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErr
 			certo =	interpretarInsert(&*banco, comandoAtual->comando, logErro);
 //			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
 //				interpretarSelect(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
-//				interpretarUpdate(*banco, aux->comando);
-//			else if(!stricmp(aux->comando[0].palavra, "DELETE"))
-//				interpretarDelete(*banco, aux->comando);*/
+			else if(comandoAtual->comando[0].tipo == TOK_UPDATE)
+				certo = interpretarUpdate(&*banco, comandoAtual->comando, logErro);
+			else if(comandoAtual->comando[0].tipo == TOK_DELETE)
+				certo = interpretarDelete(&*banco, comandoAtual->comando, logErro);
 			else if(comandoAtual->comando[0].tipo == TOK_ALTER)
 				certo = interpretarAlter(&*banco, comandoAtual->comando, logErro);
 		free(comandoAtual);

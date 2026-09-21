@@ -44,6 +44,19 @@ struct banco
 };
 typedef struct banco TpBanco;
 
+struct condicao
+{
+    TpCampo *campo;
+    TpCampo *campoComparado;
+    int operador;
+    char join;
+    union dados valor;
+    union dados valor2;
+    int conector;
+    struct condicao *prox;
+};
+typedef struct condicao TpCondicao;
+
 
 void criarBanco(TpBanco **pontDB, char nome[])
 {
