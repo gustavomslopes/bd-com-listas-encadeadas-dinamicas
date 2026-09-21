@@ -43,7 +43,7 @@
 #define TOK_NUMERO 37
 #define TOK_STRING 38
 
-#define TOTAL_TOK 38
+#define TOTAL_TOK 40
 
 void toString(FILE *arq, char stringFormatada[])
 {
@@ -156,6 +156,7 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 		{"CHARACTER", TOK_TIPO_DADO},
 		{"FLOAT", TOK_TIPO_DADO}, 
 		{"DOUBLE", TOK_TIPO_DADO},
+		{"NUMERIC", TOK_TIPO_DADO},
 		{"DATE", TOK_TIPO_DADO}, 
 		{"BOOLEAN", TOK_TIPO_DADO},
 		{"AND", TOK_AND}, 
@@ -307,13 +308,13 @@ void imprimirComandos(DescritorLista *descLista)
 	}
 }
 
-char erro(char palavra[])
+char erro(char logErro[], char palavra[])
 {
-	printf("ERRO: %s", palavra);
+	strcpy(logErro, palavra);
 	return 0;
 }
 
-char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
+char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i, char logErro[])
 {
 	char nomeCampo[20], tipo;
 
@@ -324,6 +325,26 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 		tipo = 'I';
 	else if(!stricmp(comando[*i].palavra, "FLOAT") || !stricmp(comando[*i].palavra, "DOUBLE"))
 		tipo = 'N';
+	else if(!stricmp(comando[*i].palavra, "NUMERIC"))
+	{
+		tipo = 'N';
+		(*i)++;
+		if(comando[*i].tipo == TOK_ABRE_PARENTESE)
+		{
+			(*i)++;
+			if(comando[*i].tipo != TOK_NUMERO)
+				return erro(logErro, "Esperava numero em NUMERIC");
+			(*i)++;
+			if(comando[*i].tipo != TOK_VIRGULA)
+				return erro(logErro, "Esperava , em NUMERIC");
+			(*i)++;
+			if(comando[*i].tipo != TOK_NUMERO)
+				return erro(logErro, "Esperava numero em NUMERIC");
+			(*i)++;
+			if(comando[*i].tipo != TOK_FECHA_PARENTESE)
+				return erro(logErro, "Faltou ) em NUMERIC");
+		}
+	}
 	else if(!stricmp(comando[*i].palavra, "DATE"))
 		tipo = 'D';
 	else if(!stricmp(comando[*i].palavra, "CHAR") || !stricmp(comando[*i].palavra, "CHARACTER"))
@@ -339,20 +360,20 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 				else if(atoi(comando[*i].palavra) == 1)
 					tipo = 'C';
 				else
-					return erro("Tamanho de CHAR nao suportado (use 1 ou 20)");
+					return erro(logErro, "Tamanho de CHAR nao suportado (use 1 ou 20)");
 
 				(*i)++;
 				if(comando[*i].tipo != TOK_FECHA_PARENTESE)
-					return erro("Faltou )");
+					return erro(logErro, "Faltou )");
 			}
 			else
-				return erro("Esperava numero em CHAR(n)");
+				return erro(logErro, "Esperava numero em CHAR(n)");
 		}
 		else
-			return erro("Faltou (");
+			return erro(logErro, "Faltou (");
 	}
 	else
-		return erro("Tipo de dado nao reconhecido");
+		return erro(logErro, "Tipo de dado nao reconhecido");
 
 	if(criarCampo(&(tabelaAtual->pCampos), nomeCampo, tipo))
 	{
@@ -361,16 +382,16 @@ char interpretarCampo(TpTabela *tabelaAtual, Token comando[], int *i)
 			(*i)++;
 		else if(comando[*i].tipo != TOK_FECHA_PARENTESE)
 		{
-			return erro("Falta )");
+			return erro(logErro, "Falta )");
 		}
 	}
 	else
-		return erro("Campos com o mesmo nome!");
+		return erro(logErro, "Campos com o mesmo nome!");
 		
 	return 1;
 }
 
-char criarPK(TpTabela *tabelaAtual, Token comando[], int *i)
+char criarPK(TpTabela *tabelaAtual, Token comando[], int *i, char logErro[])
 {
 	TpCampo *campoPK;
 	(*i)++;
@@ -380,7 +401,7 @@ char criarPK(TpTabela *tabelaAtual, Token comando[], int *i)
 	if(campoPK != NULL)
 		campoPK->PK = 'S';
 	else
-		return erro("Campo nao encontrado para PK!");
+		return erro(logErro, "Campo nao encontrado para PK!");
 	(*i)++;
 	return 1;
 }
@@ -441,7 +462,7 @@ TpDado* buscarDado(TpCampo *campo, union dados valor)
 	return NULL;
 }
 
-char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i)
+char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i, char logErro[])
 {
 	TpCampo *campoFK, *campoFK2;
 	TpTabela *tabelaFK;
@@ -476,28 +497,28 @@ char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i)
 										(*i)++;
 									}
 									else
-										return erro("Campo referenciado nao encontrado");
+										return erro(logErro, "Campo referenciado nao encontrado");
 								}
 								else
-									return erro("Falta ( apos nome da tabela referenciada");
+									return erro(logErro, "Falta ( apos nome da tabela referenciada");
 							}
 							else
-								return erro("Tabela referenciada nao encontrada");
+								return erro(logErro, "Tabela referenciada nao encontrada");
 						}
 						
 					}
 					else
-						return erro("Esperado REFERENCES");
+						return erro(logErro, "Esperado REFERENCES");
 				}
 				else
-					return erro("Falta ) apos campo FK");
+					return erro(logErro, "Falta ) apos campo FK");
 			}
 		}
 		else
-			return erro("Campo FK nao encontrado na tabela atual");		
+			return erro(logErro, "Campo FK nao encontrado na tabela atual");		
 	}
 	else
-		return erro("Nome do campo ausente");
+		return erro(logErro, "Nome do campo ausente");
 
 	if(comando[*i].tipo == TOK_FECHA_PARENTESE)
 	{
@@ -506,12 +527,12 @@ char criarFK(TpTabela *tabelaAtual, Token comando[], TpBanco **banco, int  *i)
 			(*i)++;
 	}
 	else 
-		return erro("Falta )");
+		return erro(logErro, "Falta )");
 	
 	return 1;
 }
 
-char interpretarCreate(TpBanco **banco, Token comando[])
+char interpretarCreate(TpBanco **banco, Token comando[], char logErro[])
 {
 	int i=1, temCampo=0, temPK=0;
 	TpCampo *campoFK,*campoFK2;
@@ -535,8 +556,8 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 						{
 							if(comando[i].tipo == TOK_STRING && comando[i+1].tipo == TOK_TIPO_DADO)
 							{
-								if(!interpretarCampo(tabelaAtual, comando, &i))
-									return erro("Erro ao interpretar campo");
+								if(!interpretarCampo(tabelaAtual, comando, &i, logErro))
+									return erro(logErro, "Erro ao interpretar campo");
 								temCampo=1;			
 							}
 							else if(comando[i].tipo == TOK_CONSTRAINT && temCampo)
@@ -550,12 +571,12 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 										i+=2;
 										if(comando[i].tipo == TOK_ABRE_PARENTESE && comando[i+1].tipo == TOK_STRING )
 										{
-											if(!criarPK(tabelaAtual, comando, &i))
-												return erro("Falha ao criar PK");
+											if(!criarPK(tabelaAtual, comando, &i, logErro))
+												return erro(logErro, "Falha ao criar PK");
 											if(comando[i].tipo == TOK_VIRGULA && comando[i+1].tipo == TOK_STRING)
 											{
-												if(!criarPK(tabelaAtual, comando, &i))
-													return erro("Falha ao criar PK");
+												if(!criarPK(tabelaAtual, comando, &i, logErro))
+													return erro(logErro, "Falha ao criar PK");
 											}
 											if(comando[i].tipo == TOK_FECHA_PARENTESE)
 											{
@@ -563,47 +584,47 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 												if(comando[i].tipo == TOK_VIRGULA)
 													i++;	
 												else if(comando[i].tipo != TOK_FECHA_PARENTESE)
-													return erro("Falta )");
+													return erro(logErro, "Falta )");
 												temPK=1;
 											}
 											else
-												return erro("Falta )");												
+												return erro(logErro, "Falta )");												
 										}
 									}
 									else if(comando[i].tipo == TOK_PRIMARY && comando[i+1].tipo == TOK_KEY && temPK==1)
-										return erro("Duas PK!");
+										return erro(logErro, "Duas PK!");
 									else if(comando[i].tipo == TOK_FOREIGN && comando[i+1].tipo == TOK_KEY)
 									{
 										i+=2;
 										if(comando[i].tipo == TOK_ABRE_PARENTESE)
 										{
-											if(!criarFK(tabelaAtual, comando, &*banco, &i))
-												return erro("Falha ao criar FK");
+											if(!criarFK(tabelaAtual, comando, &*banco, &i, logErro))
+												return erro(logErro, "Falha ao criar FK");
 											
 										}
 									}
 								}
 							}
 							else if(comando[i].tipo == TOK_CONSTRAINT && !temCampo)
-								return erro("Nao ha campos para ter constraint");
+								return erro(logErro, "Nao ha campos para ter constraint");
 							else
-								return erro("Campo estruturado errado!");
+								return erro(logErro, "Campo estruturado errado!");
 						}
 						i++;
 						if(comando[i].tipo == TOK_PONTO_VIRGULA)
 							return 1;
 					}
 					else
-						return erro("Sem (");
+						return erro(logErro, "Sem (");
 				}
 				else
-					return erro("Nome da tabela ja existente!");				
+					return erro(logErro, "Nome da tabela ja existente!");				
 			}
 			else
-				return erro("Nome da tabela ausente!");
+				return erro(logErro, "Nome da tabela ausente!");
 		}
 		else
-			return erro("Banco nao criado!");
+			return erro(logErro, "Banco nao criado!");
 		
 	}
 	else if(comando[i].tipo == TOK_DATABASE)
@@ -616,15 +637,15 @@ char interpretarCreate(TpBanco **banco, Token comando[])
 			if(comando[++i].tipo == TOK_PONTO_VIRGULA)
 				return 1;
 		}
-		return erro("Erro ao criar banco");
+		return erro(logErro, "Erro ao criar banco");
 	}
 	else
-		return erro("Comando create nao reconhecido!");
+		return erro(logErro, "Comando create nao reconhecido!");
 		
 }
 
 
-char interpretarAlter(TpBanco **banco, Token comando[])
+char interpretarAlter(TpBanco **banco, Token comando[], char logErro[])
 {
 	int i=1;
 	TpCampo *campoFK,*campoFK2;
@@ -654,8 +675,8 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 									i+=2;
 									if(comando[i].tipo == TOK_ABRE_PARENTESE)
 									{
-										if(!criarFK(tabelaFK, comando, &*banco, &i))
-											return erro("Falha ao criar FK");
+										if(!criarFK(tabelaFK, comando, &*banco, &i, logErro))
+											return erro(logErro, "Falha ao criar FK");
 										if(comando[i].tipo == TOK_FECHA_PARENTESE)
 											i++;
 										else
@@ -663,35 +684,35 @@ char interpretarAlter(TpBanco **banco, Token comando[])
 											if(comando[i].tipo == TOK_PONTO_VIRGULA)
 												return 1;
 											else
-												return erro("Falta ;");
+												return erro(logErro, "Falta ;");
 										}
 									}
 									else
-										return erro("Falta ( apos FOREIGN KEY");
+										return erro(logErro, "Falta ( apos FOREIGN KEY");
 								}
 								else
-									return erro("Esperado FOREIGN KEY");
+									return erro(logErro, "Esperado FOREIGN KEY");
 							}
 							else
-								return erro("Nome da constraint ausente");
+								return erro(logErro, "Nome da constraint ausente");
 						}
 						else
-							return erro("Esperado CONSTRAINT");
+							return erro(logErro, "Esperado CONSTRAINT");
 					}
 					else
-						return erro("Esperado ADD");
+						return erro(logErro, "Esperado ADD");
 				}
 				else
-					return erro("Tabela nao encontrada");
+					return erro(logErro, "Tabela nao encontrada");
 			}
 			else
-				return erro("Nome da tabela ausente!");
+				return erro(logErro, "Nome da tabela ausente!");
 		}
 		else
-			return erro("Banco nao criado!");
+			return erro(logErro, "Banco nao criado!");
 	}
 	else
-		return erro("Comando alter nao reconhecido!");
+		return erro(logErro, "Comando alter nao reconhecido!");
 }
 
 char isChar1(char palavra[])
@@ -758,7 +779,7 @@ void tirarApostrofo(char palavra[])
 	palavra[i-1] = '\0';
 }
 
-char interpretarInsert(TpBanco **banco, Token comando[])
+char interpretarInsert(TpBanco **banco, Token comando[], char logErro[])
 {
 	int i=1, pos=0;
 	TpCampo *campos[15];
@@ -778,24 +799,24 @@ char interpretarInsert(TpBanco **banco, Token comando[])
 				{
 					i++;
 					if(comando[i].tipo == TOK_FECHA_PARENTESE)
-						return erro("Sem colunas");
+						return erro(logErro, "Sem colunas");
 					while(comando[i].tipo != TOK_FECHA_PARENTESE)
 					{
 						if(comando[i].tipo == TOK_STRING)
 						{
 							campos[pos] = buscarCampo(tabela, comando, i);
 							if(campos[pos]==NULL)
-								return erro("campo nao encontrado!");
+								return erro(logErro, "campo nao encontrado!");
 							
 							pos++;
 							i++;
 							if(comando[i].tipo == TOK_VIRGULA)
 								i++;
 							else if(comando[i].tipo != TOK_FECHA_PARENTESE)
-								return erro("Falta )");
+								return erro(logErro, "Falta )");
 						}
 						else
-							return erro("Esperado nome de coluna!");
+							return erro(logErro, "Esperado nome de coluna!");
 					}
 					i++;
 					if(comando[i].tipo == TOK_VALUES)
@@ -805,7 +826,7 @@ char interpretarInsert(TpBanco **banco, Token comando[])
 						{
 							i++;
 							if(comando[i].tipo == TOK_FECHA_PARENTESE)
-								return erro("Sem valores");
+								return erro(logErro, "Sem valores");
 							pos=0;
 							while(comando[i].tipo != TOK_FECHA_PARENTESE)
 							{
@@ -831,7 +852,7 @@ char interpretarInsert(TpBanco **banco, Token comando[])
 											tipo = 'D';
 										}
 										else
-											return erro("Tipo de dado nao reconhecido");
+											return erro(logErro, "Tipo de dado nao reconhecido");
 									}
 									else
 									{
@@ -849,51 +870,51 @@ char interpretarInsert(TpBanco **banco, Token comando[])
 									if(tipo == campos[pos]->tipo)
 									{
 										if(campos[pos]->PK == 'S' && buscarDado(campos[pos], valor))
-											return erro("Dado repetido na PK");
+											return erro(logErro, "Dado repetido na PK");
 										if(campos[pos]->FK != NULL && !buscarDado(campos[pos]->FK, valor))
-											return erro("Dado nao encontrado na FK");
+											return erro(logErro, "Dado nao encontrado na FK");
 										criarDado(tabela->pCampos, campos[pos]->nome, valor);
 									}
 									else
-										return erro("Tipo de dado incompativel");
+										return erro(logErro, "Tipo de dado incompativel");
 									pos++;
 									i++;
 									if(comando[i].tipo == TOK_VIRGULA)
 										i++;
 								}
 								else
-									return erro("Esperado valor!");
+									return erro(logErro, "Esperado valor!");
 							}
 						}
 						else
-							return erro("Falta (");
+							return erro(logErro, "Falta (");
 					}
 					else
-						return erro("Esperado VALUES");
+						return erro(logErro, "Esperado VALUES");
 				}
 				else
-					return erro("Falta (");
+					return erro(logErro, "Falta (");
 			}
 			else
-				return erro("Tabela nao encontrada!");
+				return erro(logErro, "Tabela nao encontrada!");
 		}
 		else
-			return erro("Falta nome da tabela");
+			return erro(logErro, "Falta nome da tabela");
 	}
 	else
-		return erro("Esperado INTO");
+		return erro(logErro, "Esperado INTO");
 }
 
-void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
+void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErro[])
 {
 	Lista *comandoAtual = del(&*descLista);
 	char certo = 1;
 	while(comandoAtual!=NULL && certo == 1)
 	{
 		if(comandoAtual->comando[0].tipo == TOK_CREATE)
-			certo = interpretarCreate(&*banco, comandoAtual->comando);
+			certo = interpretarCreate(&*banco, comandoAtual->comando, logErro);
 			else if(comandoAtual->comando[0].tipo == TOK_INSERT)
-				interpretarInsert(&*banco, comandoAtual->comando);
+			certo =	interpretarInsert(&*banco, comandoAtual->comando, logErro);
 //			else if(!stricmp(aux->comando[0].palavra, "SELECT"))
 //				interpretarSelect(*banco, aux->comando);
 //			else if(!stricmp(aux->comando[0].palavra, "UPDATE"))
@@ -901,7 +922,7 @@ void interpretarComandos(TpBanco **banco, DescritorLista *descLista)
 //			else if(!stricmp(aux->comando[0].palavra, "DELETE"))
 //				interpretarDelete(*banco, aux->comando);*/
 			else if(comandoAtual->comando[0].tipo == TOK_ALTER)
-				certo = interpretarAlter(&*banco, comandoAtual->comando);
+				certo = interpretarAlter(&*banco, comandoAtual->comando, logErro);
 		free(comandoAtual);
 		comandoAtual = del(&*descLista);
 	}
