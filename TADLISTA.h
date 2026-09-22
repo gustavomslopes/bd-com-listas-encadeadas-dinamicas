@@ -1,6 +1,6 @@
 struct token
 {
-	char palavra[20];
+	char palavra[50];
 	int tipo;
 }; typedef struct token Token;
 

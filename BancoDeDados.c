@@ -197,7 +197,10 @@ void imprimirBancoGrade(TpBanco *banco)
 		l++;
 		tabela = banco->pTabelas;
 		if (tabela == NULL)
+		{
+			gotoxy(c, l);
 			printf("(nenhuma tabela criada)");
+		}
 		else
 		{
 			c = 1;
@@ -241,14 +244,14 @@ int main()
 			toString(ptr, scriptString);
 			fclose(ptr);
 			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-			imprimirBanco(banco);
+			imprimirBancoGrade(banco);
 			printf("\n");
 			if (logErro[0] != '\0')
 				printf("ERRO: %s\n\n", logErro);
 			while (lerScriptUsuario(scriptString))
 			{
 				processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-				imprimirBanco(banco);
+				imprimirBancoGrade(banco);
 				printf("\n");
 				if (logErro[0] != '\0')
 					printf("ERRO: %s\n\n", logErro);
@@ -262,7 +265,7 @@ int main()
 		while (lerScriptUsuario(scriptString))
 		{
 			processarScript(scriptString, stringFormatada, tokens, TL, descLista, &banco, logErro);
-			imprimirBanco(banco);
+			imprimirBancoGrade(banco);
 		}
 	}
 

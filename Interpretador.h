@@ -174,7 +174,7 @@ void tokenizarComandos(char stringFormatada[], Token tokens[], int *TLToken)
 		{"OR", TOK_OR}, 
 		{"NOT", TOK_NOT}
 	};
-	char comando[100], palavra[30];
+	char comando[100], palavra[50];
 	
 	int i=0, TLP, TLS=0, token;
 	char caractere = stringFormatada[i++];
@@ -283,7 +283,7 @@ char lerScriptUsuario(char scriptString[])
 {
 	char caractere;
 	int TL=0;
-	printf("Digite seu script sql abaixo (& - pular liha):\n");
+	printf("\nDigite seu script sql abaixo (& - pular liha):\n");
 	caractere = getch();
 	while(caractere != 13 && caractere != 27)
 	{
@@ -986,7 +986,7 @@ void separarTabelaCampo(char palavra[], char nomeTabela[], char nomeCampo[])
 
 TpCampo *buscarCampoJoin(TpBanco *banco, char palavra[])
 {
-	char nomeTabela[20], nomeCampo[20];
+	char nomeTabela[30], nomeCampo[30];
 	TpTabela *tabela;
 	TpCampo *campo;
 
@@ -1036,13 +1036,15 @@ TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabelas[], int numTabelas
         // ADAPTAÇÃO: Se não for JOIN (não tem prefixo 'tabela.'), procura em todas as tabelas do FROM
         if(!nova->join)
         {
-			t=0;
-            nova->campo = buscarCampo(tabelas[t], comando, *i);
-			while(nova->campo != NULL && t<numTabelas)
-			{
-				t++;
-				nova->campo = buscarCampo(tabelas[t], comando, *i);
-			}
+            nova->campo = NULL;
+            t = 0;
+            
+            // Continua buscando enquanto o campo N�O for achado E ainda houver tabelas
+            while(nova->campo == NULL && t < numTabelas)
+            {
+                nova->campo = buscarCampo(tabelas[t], comando, *i);
+                t++;
+            }
         }
         else
         {
@@ -1587,67 +1589,272 @@ char interpretarUpdate(TpBanco **banco, Token comando[], char logErro[])
     return 1;
 }
 
+char temPonto(char palavra[])
+{
+    int i = 0;
+    char encontrou = 0;
+    
+    // O la�o para se chegar ao fim da palavra ou se encontrar o ponto
+    while (palavra[i] != '\0' && encontrou == 0)
+    {
+        if (palavra[i] == '.')
+            encontrou = 1;
+        i++;
+    }
+    
+    return encontrou;
+}
+
+char iterarTabelasSelect(TpTabela *tabelas[], int numTabelas, int idxTabela, TpCampo *camposExibicao[], int totalCamposExibicao, TpCampo *camposGlobais[], TpDado *linhaAtual[], int totalCamposGlobais, TpCondicao *condicoes, char logErro[])
+{	
+	int i, j, numCamposTab, posGlobais[15], conectorAtual;
+	TpTabela *tab;
+	TpDado *atualPorCampo[15], *dadoParaPrint, *dado1, *dado2;
+	TpCampo *campo;
+	TpCondicao *cond;
+	char bate, parcial;
+    if (idxTabela == numTabelas)
+    {
+        bate = 1; 
+
+        if (condicoes != NULL)
+        {
+            cond = condicoes;
+            
+            dado1 = NULL; 
+			dado2 = NULL;
+            for (i = 0; i < totalCamposGlobais; i++)
+            {
+                if (camposGlobais[i] == cond->campo) 
+					dado1 = linhaAtual[i];
+                if (cond->join && camposGlobais[i] == cond->campoComparado) 
+					dado2 = linhaAtual[i];
+            }
+            
+            if (cond->join) 
+                bate = dadosSaoIguais(dado1, dado2, cond->campo->tipo); 
+            else 
+                bate = avaliarCondicao(cond, dado1->valor);
+
+            while (cond->conector != -1)
+            {
+                conectorAtual = cond->conector;
+                cond = cond->prox;
+                
+                dado1 = NULL; 
+				dado2 = NULL;
+                for (i = 0; i < totalCamposGlobais; i++)
+                {
+                    if (camposGlobais[i] == cond->campo) 
+						dado1 = linhaAtual[i];
+                    if (cond->join && camposGlobais[i] == cond->campoComparado) 
+						dado2 = linhaAtual[i];
+                }
+
+                parcial = 0;
+                if (cond->join) 
+					parcial = dadosSaoIguais(dado1, dado2, cond->campo->tipo);
+                else 
+					parcial = avaliarCondicao(cond, dado1->valor);
+
+                if (conectorAtual == TOK_AND)
+					bate = bate && parcial;
+                else if (conectorAtual == TOK_OR)
+					bate = bate || parcial;
+            }
+        }
+        if (bate)
+        {
+            for (i = 0; i < totalCamposExibicao; i++)
+            {
+                dadoParaPrint = NULL;
+                j = 0;
+                while (j < totalCamposGlobais && camposGlobais[j] != camposExibicao[i])
+                    j++;
+                
+                if (j < totalCamposGlobais)
+                    dadoParaPrint = linhaAtual[j];
+                
+                if (dadoParaPrint != NULL)
+                {
+                    switch (camposExibicao[i]->tipo)
+                    {
+                        case 'I': printf("%d", dadoParaPrint->valor.integer); break;
+                        case 'N': printf("%.2f", dadoParaPrint->valor.numeric); break;
+                        case 'D': printf("%s", dadoParaPrint->valor.date); break;
+                        case 'C': printf("%c", dadoParaPrint->valor.character1); break;
+                        case 'T': printf("%s", dadoParaPrint->valor.character20); break;
+                    }
+                }
+                else
+                    printf("NULL");
+                    
+                printf("\t| ");
+            }
+            printf("\n");
+        }
+        return 1;
+    }
+
+    tab = tabelas[idxTabela];
+    numCamposTab = contarCampos(tab);
+    
+    campo = tab->pCampos;
+    for (i = 0; i < numCamposTab; i++)
+    {
+        atualPorCampo[i] = campo->pDados;
+        
+        j = 0;
+        while (j < totalCamposGlobais && camposGlobais[j] != campo)
+            j++;
+            
+        if (j < totalCamposGlobais)
+            posGlobais[i] = j;
+        campo = campo->prox;
+    }
+    if (numCamposTab > 0 && atualPorCampo[0] == NULL)
+        return 1;
+
+    while (numCamposTab == 0 || atualPorCampo[0] != NULL)
+    {
+        for (i = 0; i < numCamposTab; i++)
+            linhaAtual[posGlobais[i]] = atualPorCampo[i];
+
+        iterarTabelasSelect(tabelas, numTabelas, idxTabela + 1, camposExibicao, totalCamposExibicao, camposGlobais, linhaAtual, totalCamposGlobais, condicoes, logErro);
+
+        if (numCamposTab == 0) break;
+
+        for (i = 0; i < numCamposTab; i++)
+            atualPorCampo[i] = atualPorCampo[i]->prox;
+    }
+    return 1;
+}
+
 char interpretarSelect(TpBanco **banco, Token comando[], char logErro[])
 {
-	int i=1, pos=0;
-	TpTabela *tabelas[20];
+    int i = 1, c, t, numCamposSelect = 0, numTabelas = 0, totalCamposGlobais = 0, totalCamposExibicao = 0;
+    TpCampo *camposExibicao[50], *campoEncontrado, *camposGlobais[50], *campo;
+    char asterisco = 0, nomesCamposSelect[20][50];
 	TpCondicao *condicoes;
-	if(comando[i].palavra[0] == '*')
-	{
-		i++;
-		if(comando[i].tipo == TOK_FROM)
-		{
-			i++;
-			if(comando[i].tipo == TOK_STRING)
-			{
-				tabelas[pos] = buscarTabela(*banco, comando, i);
-				if(tabelas[pos]!=NULL)
-				{
-					i++;
-					while(comando[i].tipo != TOK_PONTO_VIRGULA)
-					{
-						if(comando[i].tipo == TOK_VIRGULA)
-						{
-							i++;
-							while(comando[i].tipo != TOK_PONTO_VIRGULA && comando[i].tipo != TOK_WHERE)
-							{
-								if(comando[i].tipo == TOK_STRING)
-								{
-									tabelas[++pos] = buscarTabela(*banco, comando, i);
-									if(tabelas[pos] != NULL)
-										i++;
-									else
-										return erro (logErro, "Tabela nao encontrada");
+    TpTabela *tabelas[10];
+    Token campoSemJoin[1];
+    TpDado *linhaAtual[50];
 
-									if(comando[i].tipo == TOK_VIRGULA)
-										i++;
-									else if(comando[i].tipo != TOK_PONTO_VIRGULA && comando[i].tipo != TOK_WHERE)
-										return erro(logErro, "esperado ; ou WHERE");
-								}
-							}
-							if(comando[i].tipo == TOK_WHERE)
-							{
-								condicoes = InterpretarWHERE(*banco, tabelas, pos+1, comando, &i, logErro);
-								while(condicoes!=NULL)
-								{
-									printf("%d, %c, %s", condicoes->operador, condicoes->join, condicoes->campo->nome);
-									condicoes = condicoes->prox;
-								}
-								
-							}
-						}
-							
-						else if(comando[i].tipo == TOK_WHERE)
-						{
-							
-						}
-					}
-				}
-				
-			}
-		}
-	}
+    if(*banco == NULL)
+        return erro(logErro, "Nenhum banco de dados selecionado");
 
+    if(comando[i].palavra[0] == '*')
+    {
+        asterisco = 1;
+        i++;
+    }
+    else
+    {
+        while(comando[i].tipo != TOK_FROM && comando[i].tipo != TOK_PONTO_VIRGULA)
+        {
+            if(comando[i].tipo == TOK_IDENTIFICADOR || comando[i].tipo == TOK_STRING)
+            {
+                strcpy(nomesCamposSelect[numCamposSelect++], comando[i].palavra);
+                i++;
+                if(comando[i].tipo == TOK_VIRGULA)
+                    i++;
+            }
+            else
+                return erro(logErro, "Esperado nome de campo ou * no SELECT");
+        }
+    }
+
+    if(comando[i].tipo != TOK_FROM)
+        return erro(logErro, "Esperado FROM no comando SELECT");
+    i++;
+
+    while(comando[i].tipo != TOK_WHERE && comando[i].tipo != TOK_PONTO_VIRGULA)
+    {
+        if(comando[i].tipo == TOK_IDENTIFICADOR || comando[i].tipo == TOK_STRING)
+        {
+            tabelas[numTabelas] = buscarTabela(*banco, comando, i);
+            if(tabelas[numTabelas] == NULL)
+                return erro(logErro, "Tabela listada no FROM nao encontrada");
+
+            numTabelas++;
+            i++;
+
+            if(comando[i].tipo == TOK_VIRGULA)
+                i++;
+        }
+        else
+            return erro(logErro, "Esperado nome da tabela no FROM");
+    }
+
+    if(numTabelas == 0)
+        return erro(logErro, "Nenhuma tabela especificada no FROM");
+
+    condicoes = NULL;
+    if(comando[i].tipo == TOK_WHERE)
+    {
+        condicoes = InterpretarWHERE(*banco, tabelas, numTabelas, comando, &i, logErro);
+        if(condicoes == NULL)
+            return 0;
+    }
+
+    if(comando[i].tipo != TOK_PONTO_VIRGULA)
+        return erro(logErro, "Falta o ; no final do comando SELECT");
+    
+    for(t = 0; t < numTabelas; t++)
+    {
+        campo = tabelas[t]->pCampos;
+        while(campo != NULL)
+        {
+            camposGlobais[totalCamposGlobais++] = campo;
+            campo = campo->prox;
+        }
+    }
+    
+    if(asterisco)
+    {
+        for(c = 0; c < totalCamposGlobais; c++)
+            camposExibicao[totalCamposExibicao++] = camposGlobais[c];
+    }
+    else
+    {
+        for(c = 0; c < numCamposSelect; c++)
+        {
+            campoEncontrado = NULL;
+            
+            if(temPonto(nomesCamposSelect[c]))
+                campoEncontrado = buscarCampoJoin(*banco, nomesCamposSelect[c]);
+            else
+            {
+                strcpy(campoSemJoin[0].palavra, nomesCamposSelect[c]);
+                campoSemJoin[0].tipo = TOK_IDENTIFICADOR;
+                t = 0;
+                while(campoEncontrado == NULL && t < numTabelas)
+                {
+                    campoEncontrado = buscarCampo(tabelas[t], campoSemJoin, 0);
+                    t++;
+                }
+            }
+            
+            if(campoEncontrado == NULL)
+                return erro(logErro, "Campo solicitado nao existe nas tabelas do FROM");
+                
+            camposExibicao[totalCamposExibicao++] = campoEncontrado;
+        }
+    }
+    
+    printf("\n");
+    for(c = 0; c < totalCamposExibicao; c++)
+        printf("%s\t| ", camposExibicao[c]->nome);
+    
+    printf("\n");
+    for(c = 0; c < totalCamposExibicao; c++)
+        printf("--------+ ");
+    printf("\n");    
+    iterarTabelasSelect(tabelas, numTabelas, 0, camposExibicao, totalCamposExibicao, camposGlobais, linhaAtual, totalCamposGlobais, condicoes, logErro);
+    printf("\n");
+	printf("Pressione qualquer tecla para continuar... ");
+	getch();
+    return 1;
 }
 
 void interpretarComandos(TpBanco **banco, DescritorLista *descLista, char logErro[])
