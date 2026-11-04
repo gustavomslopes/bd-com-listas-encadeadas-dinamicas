@@ -1033,13 +1033,11 @@ TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabelas[], int numTabelas
         
         nova->join = verificaJOIN(comando, *i);
         
-        // ADAPTAÇÃO: Se não for JOIN (não tem prefixo 'tabela.'), procura em todas as tabelas do FROM
         if(!nova->join)
         {
             nova->campo = NULL;
             t = 0;
             
-            // Continua buscando enquanto o campo N�O for achado E ainda houver tabelas
             while(nova->campo == NULL && t < numTabelas)
             {
                 nova->campo = buscarCampo(tabelas[t], comando, *i);
@@ -1047,10 +1045,7 @@ TpCondicao *InterpretarWHERE(TpBanco *banco, TpTabela *tabelas[], int numTabelas
             }
         }
         else
-        {
-            // Se for JOIN (tabela.campo), a lógica atual usando o banco já resolve perfeitamente
             nova->campo = buscarCampoJoin(banco, comando[*i].palavra);
-        }
         
         if(nova->campo == NULL)
         {
@@ -1594,7 +1589,6 @@ char temPonto(char palavra[])
     int i = 0;
     char encontrou = 0;
     
-    // O la�o para se chegar ao fim da palavra ou se encontrar o ponto
     while (palavra[i] != '\0' && encontrou == 0)
     {
         if (palavra[i] == '.')
@@ -1679,17 +1673,15 @@ char iterarTabelasSelect(TpTabela *tabelas[], int numTabelas, int idxTabela, TpC
                 {
                     switch (camposExibicao[i]->tipo)
                     {
-                        case 'I': printf("%d", dadoParaPrint->valor.integer); break;
-                        case 'N': printf("%.2f", dadoParaPrint->valor.numeric); break;
-                        case 'D': printf("%s", dadoParaPrint->valor.date); break;
-                        case 'C': printf("%c", dadoParaPrint->valor.character1); break;
-                        case 'T': printf("%s", dadoParaPrint->valor.character20); break;
+                        case 'I': printf("%-15d |", dadoParaPrint->valor.integer); break;
+                        case 'N': printf("%-15.2f |", dadoParaPrint->valor.numeric); break;
+                        case 'D': printf("%-15s |", dadoParaPrint->valor.date); break;
+                        case 'C': printf("%-15c |", dadoParaPrint->valor.character1); break;
+                        case 'T': printf("%-15s |", dadoParaPrint->valor.character20); break;
                     }
                 }
                 else
                     printf("NULL");
-                    
-                printf("\t| ");
             }
             printf("\n");
         }
@@ -1715,14 +1707,12 @@ char iterarTabelasSelect(TpTabela *tabelas[], int numTabelas, int idxTabela, TpC
     if (numCamposTab > 0 && atualPorCampo[0] == NULL)
         return 1;
 
-    while (numCamposTab == 0 || atualPorCampo[0] != NULL)
+    while (numCamposTab > 0 && atualPorCampo[0] != NULL)
     {
         for (i = 0; i < numCamposTab; i++)
             linhaAtual[posGlobais[i]] = atualPorCampo[i];
 
         iterarTabelasSelect(tabelas, numTabelas, idxTabela + 1, camposExibicao, totalCamposExibicao, camposGlobais, linhaAtual, totalCamposGlobais, condicoes, logErro);
-
-        if (numCamposTab == 0) break;
 
         for (i = 0; i < numCamposTab; i++)
             atualPorCampo[i] = atualPorCampo[i]->prox;
@@ -1844,11 +1834,15 @@ char interpretarSelect(TpBanco **banco, Token comando[], char logErro[])
     
     printf("\n");
     for(c = 0; c < totalCamposExibicao; c++)
-        printf("%s\t| ", camposExibicao[c]->nome);
+        printf("%-15s |", camposExibicao[c]->nome);
     
     printf("\n");
-    for(c = 0; c < totalCamposExibicao; c++)
-        printf("--------+ ");
+    for(c=0; c<totalCamposExibicao; c++)
+    {
+    	for(t=0; t<16; t++)
+    		printf("-");
+    	printf("+");
+    }
     printf("\n");    
     iterarTabelasSelect(tabelas, numTabelas, 0, camposExibicao, totalCamposExibicao, camposGlobais, linhaAtual, totalCamposGlobais, condicoes, logErro);
     printf("\n");

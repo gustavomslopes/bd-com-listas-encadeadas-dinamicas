@@ -69,10 +69,34 @@ ALTER TABLE os_peca ADD CONSTRAINT ordem_servico_os_peca
 ALTER TABLE os_peca ADD CONSTRAINT peca_os_peca 
     FOREIGN KEY (id_peca) REFERENCES peca (id_peca);
 
-INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (1, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
-INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (2, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
-INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (3, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
-INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (4, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
-INSERT INTO veiculo(id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (5, 'porsche', '911', 'eu', 'FZR', 'a', 202, '123sd');
+INSERT INTO veiculo (id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (1, 'Volkswagen', 'Gol', 'Carlos Silva', 'ABC-1234', 'G', 2012, '9BWZZZ377');
+INSERT INTO veiculo (id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (2, 'Fiat', 'Uno', 'Ana Souza', 'XYZ-9876', 'F', 2015, '9BD178233');
+INSERT INTO veiculo (id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (3, 'Chevrolet', 'Onix', 'Marcos Lima', 'JKL-4567', 'F', 2020, '9BG123456');
+INSERT INTO veiculo (id_veiculo, marca, modelo, dono, placa, combustivel, ano, chassi) VALUES (4, 'Toyota', 'Corolla', 'Beatriz Costa', 'MNO-7890', 'G', 2022, '9BR987654');
+
+INSERT INTO peca (id_peca, descricao, valor, estoque) VALUES (1, 'Filtro de Oleo', 35.50, 15);
+INSERT INTO peca (id_peca, descricao, valor, estoque) VALUES (2, 'Pastilha Freio', 120.00, 8);
+INSERT INTO peca (id_peca, descricao, valor, estoque) VALUES (3, 'Vela Ignicao', 45.00, 20);
+INSERT INTO peca (id_peca, descricao, valor, estoque) VALUES (4, 'Correia Dent', 180.00, 5);
+
+INSERT INTO ordem_servico (id_os, id_veiculo, km_entrada, data_entrada, hora_entrada, data_saida, hora_saida, valor_total) VALUES (101, 1, 45000, '2026-05-10', '08:30', '2026-05-10', '11:00', 155.50);
+INSERT INTO ordem_servico (id_os, id_veiculo, km_entrada, data_entrada, hora_entrada, data_saida, hora_saida, valor_total) VALUES (102, 2, 62000, '2026-05-12', '09:15', '2026-05-14', '17:30', 240.00);
+INSERT INTO ordem_servico (id_os, id_veiculo, km_entrada, data_entrada, hora_entrada, data_saida, hora_saida, valor_total) VALUES (103, 1, 45500, '2026-05-15', '14:00', '2026-05-15', '15:30', 45.00);
+INSERT INTO ordem_servico (id_os, id_veiculo, km_entrada, data_entrada, hora_entrada, data_saida, hora_saida, valor_total) VALUES (104, 3, 12000, '2026-05-18', '10:00', '2026-05-19', '16:00', 300.00);
+
+INSERT INTO servico (id_servico, descricao, valor) VALUES (1, 'Troca de Oleo', 50.00);
+INSERT INTO servico (id_servico, descricao, valor) VALUES (2, 'Alin Balanc', 120.00);
+INSERT INTO servico (id_servico, descricao, valor) VALUES (3, 'Revisao Freio', 150.00);
+INSERT INTO servico (id_servico, descricao, valor) VALUES (4, 'Troca Correia', 200.00);
+
+INSERT INTO os_servico (id_os, id_servico, valor) VALUES (101, 1, 50.00);
+INSERT INTO os_servico (id_os, id_servico, valor) VALUES (102, 2, 120.00);
+INSERT INTO os_servico (id_os, id_servico, valor) VALUES (103, 4, 45.00);
+INSERT INTO os_servico (id_os, id_servico, valor) VALUES (104, 3, 150.00);
+
+INSERT INTO os_peca (id_os, id_peca, quantidade, valor) VALUES (101, 1, 1, 35.50);
+INSERT INTO os_peca (id_os, id_peca, quantidade, valor) VALUES (102, 2, 2, 120.00);
+INSERT INTO os_peca (id_os, id_peca, quantidade, valor) VALUES (103, 3, 1, 45.00);
+INSERT INTO os_peca (id_os, id_peca, quantidade, valor) VALUES (104, 4, 1, 180.00);
 
 

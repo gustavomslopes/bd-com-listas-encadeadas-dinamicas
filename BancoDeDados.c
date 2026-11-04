@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <conio.h>
+#include <conio2.h>
 #include <string.h>
 
 #include "TADBD.h"
@@ -10,7 +10,7 @@
 
 #define LARGURA_SETOR 14
 
-int larguraTabela(int qtd)
+ int larguraTabela(int qtd)
 {
 	return qtd * 14;
 }
@@ -142,7 +142,7 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 			printf("%s", campo->nome);
 		c = c + LARGURA_SETOR + 1;
 		gotoxy(c, *l);
-
+	
 		printf("|");
 		campo = campo->prox;
 	}
@@ -177,7 +177,7 @@ void imprimirTabelaGrade(TpTabela *tabela, int *l, int c)
 			dadoAtual = dadoAtual->prox;
 			(*l)++;
 		}
-
+	
 		campoAtual = campoAtual->prox;
 	}
 	*l += 2;
