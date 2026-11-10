@@ -106,4 +106,3 @@ gcc BancoDeDados.c -o SGBD -lconio
 *No menu inicial do sistema, digite **A** para importar o arquivo de demonstração e, em seguida, digite `script.txt`. O SGBD executará todas as querys e mostrará as tabelas geradas no terminal.*
 
 ---
-Desenvolvido por [Gustavo Lopes](https://github.com/gustavomslopes).
